@@ -4,5 +4,18 @@ dist-ssr
 *.local
 .env
 .DS_Store
-tools/*.png
 npm-debug.log*
+
+# native build
+*.xcodeproj
+build/
+DerivedData/
+tools/bin/
+tools/*.png
+
+# fetched assets (samples/fetch.sh, assets/fetch_fonts.sh)
+samples/*.mp4
+assets/fonts/
+
+# local secrets
+*.apikey
