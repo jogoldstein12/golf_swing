@@ -87,7 +87,7 @@ Two things determine whether this app is good, and I care about them more than f
   flawless frame-to-frame.
 
 ### The 3D avatar
-Render the swing as a sculptural **clay artist's-mannequin** (warm matte clay), orbitable,
+Render the swing as a highly detailed, photorealistic 3D Avatar with human features
 on soft contact shadows — gallery-like, an instrument, not a video-game character. Use
 SceneKit or RealityKit. It must **animate through the swing** driven by the real 3D joint
 tracks, with a scrubbable timeline and jump-to-checkpoint (Address/Top/Impact/Follow, full
