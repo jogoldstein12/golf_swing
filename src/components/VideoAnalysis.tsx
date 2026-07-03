@@ -1,41 +1,28 @@
-// Swing-plane + skeletal-tracking overlay as it renders on the user's recorded video
-// (down-the-line, top of backswing). Here it sits on a capture stand-in; the overlay
-// engine is the deliverable — feed pose-estimation joint tracks in and these come live.
+// Swing-plane + skeletal-tracking overlay for the down-the-line video view. Renders the
+// tracked skeleton for the active checkpoint with interactive good/fault markers (tap to
+// expand). On a capture stand-in here; feed pose-estimation joint tracks in to go live.
+import { BONES2D, PLANE_LINE, SKELETONS, type Checkpoint, type Marker } from '../data/analysis'
 
 const INK = '#191712'
 const FAIRWAY = '#7FA80C'
 const AMBER = '#DB851F'
+const RED = '#CE4A2C'
 
-// Down-the-line golfer at the top of the backswing.
-const J: Record<string, [number, number]> = {
-  ball: [150, 324],
-  footL: [150, 320],
-  footR: [184, 315],
-  kneeL: [156, 263],
-  kneeR: [186, 261],
-  hipL: [166, 209],
-  hipR: [193, 211],
-  pelvis: [180, 210],
-  chest: [176, 151],
-  shoulderL: [171, 139],
-  shoulderR: [197, 132],
-  neck: [184, 128],
-  head: [189, 109],
-  elbowL: [195, 116],
-  elbowR: [215, 121],
-  hands: [215, 96],
-  clubhead: [263, 77],
-}
-const BONES: [string, string][] = [
-  ['footL', 'kneeL'], ['kneeL', 'hipL'], ['footR', 'kneeR'], ['kneeR', 'hipR'],
-  ['hipL', 'pelvis'], ['hipR', 'pelvis'], ['pelvis', 'chest'], ['chest', 'shoulderL'],
-  ['chest', 'shoulderR'], ['shoulderL', 'shoulderR'], ['chest', 'neck'], ['neck', 'head'],
-  ['shoulderL', 'elbowL'], ['elbowL', 'hands'], ['shoulderR', 'elbowR'], ['elbowR', 'hands'],
-]
-const DOTS = ['shoulderL', 'shoulderR', 'hands', 'hipL', 'hipR', 'kneeL', 'kneeR']
-const p = (k: string) => J[k]
+export default function VideoAnalysis({
+  checkpoint,
+  onSelect,
+  selectedId,
+}: {
+  checkpoint: Checkpoint
+  onSelect: (m: Marker) => void
+  selectedId?: string
+}) {
+  const s = SKELETONS[checkpoint]
+  const p = (k: string) => s.joints[k]
+  const over = s.planeState === 'over'
+  const [handsKey, clubhead] = s.club
+  const hands = p(handsKey)
 
-export default function VideoAnalysis() {
   return (
     <svg viewBox="0 0 390 360" className="h-full w-full" preserveAspectRatio="xMidYMid slice">
       <defs>
@@ -51,55 +38,73 @@ export default function VideoAnalysis() {
         </radialGradient>
       </defs>
 
-      {/* Capture backdrop (stand-in for the user's recorded frame) */}
       <rect width="390" height="360" fill="url(#cap)" />
 
-      {/* Ideal base swing plane (ball → up through the hands, extended) */}
-      <line x1={p('ball')[0]} y1={p('ball')[1]} x2="278" y2="140" stroke={FAIRWAY} strokeWidth="1.8" strokeDasharray="1 6" strokeLinecap="round" />
+      {/* Base swing plane reference */}
+      <line
+        x1={PLANE_LINE.x1} y1={PLANE_LINE.y1} x2={PLANE_LINE.x2} y2={PLANE_LINE.y2}
+        stroke={FAIRWAY} strokeWidth="1.8" strokeDasharray="1 6" strokeLinecap="round"
+        opacity={s.planeState === 'none' ? 0.35 : 1}
+      />
 
-      {/* Plane-gap indicator: club sits above the plane = over the top */}
-      <line x1={p('clubhead')[0]} y1={p('clubhead')[1]} x2={p('clubhead')[0]} y2="156" stroke={AMBER} strokeWidth="1.4" strokeDasharray="3 3" />
-      <text x={p('clubhead')[0] + 6} y="120" fontFamily="Hubot Sans Variable, sans-serif" fontSize="10" fontWeight="700" fill={AMBER}>+4.2°</text>
+      {/* Plane-gap indicator when over the top */}
+      {over && (
+        <>
+          <line x1={clubhead[0]} y1={clubhead[1]} x2={clubhead[0]} y2="156" stroke={AMBER} strokeWidth="1.4" strokeDasharray="3 3" />
+          <text x={clubhead[0] + 6} y="120" fontFamily="Hubot Sans Variable, sans-serif" fontSize="10" fontWeight="700" fill={AMBER}>+4.2°</text>
+        </>
+      )}
 
       {/* Tracked skeleton */}
       <g stroke={INK} strokeOpacity="0.85" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none">
-        {BONES.map(([a, b], i) => (
-          <line key={i} x1={p(a)[0]} y1={p(a)[1]} x2={p(b)[0]} y2={p(b)[1]} />
-        ))}
+        {BONES2D.map(([a, b], i) =>
+          s.joints[a] && s.joints[b] ? (
+            <line key={i} x1={p(a)[0]} y1={p(a)[1]} x2={p(b)[0]} y2={p(b)[1]} />
+          ) : null,
+        )}
         <circle cx={p('head')[0]} cy={p('head')[1]} r="14" />
       </g>
 
-      {/* Actual club shaft — the over-the-top delivery */}
-      <line x1={p('hands')[0]} y1={p('hands')[1]} x2={p('clubhead')[0]} y2={p('clubhead')[1]} stroke={AMBER} strokeWidth="3" strokeLinecap="round" />
+      {/* Club shaft — amber when off-plane, ink otherwise */}
+      <line
+        x1={hands[0]} y1={hands[1]} x2={clubhead[0]} y2={clubhead[1]}
+        stroke={over ? AMBER : INK} strokeOpacity={over ? 1 : 0.85} strokeWidth={over ? 3 : 2.4} strokeLinecap="round"
+      />
 
-      {/* Joint markers */}
-      {DOTS.map((k) => (
-        <circle key={k} cx={p(k)[0]} cy={p(k)[1]} r="3.3" fill="#FCFBF8" stroke={INK} strokeWidth="1.5" />
-      ))}
-      {/* Contact point */}
-      <circle cx={p('ball')[0]} cy={p('ball')[1]} r="5.5" fill="none" stroke={FAIRWAY} strokeWidth="2" />
-      <circle cx={p('ball')[0]} cy={p('ball')[1]} r="1.8" fill={FAIRWAY} />
+      {/* Contact point at address/impact */}
+      {(checkpoint === 'Address' || checkpoint === 'Impact') && (
+        <>
+          <circle cx={clubhead[0]} cy={clubhead[1]} r="5.5" fill="none" stroke={FAIRWAY} strokeWidth="2" />
+          <circle cx={clubhead[0]} cy={clubhead[1]} r="1.8" fill={FAIRWAY} />
+        </>
+      )}
 
-      {/* Fault callout — placed clear of the top toolbar */}
-      <g transform="translate(232,168)">
-        <rect x="0" y="0" width="150" height="34" rx="8" fill={AMBER} />
-        <text x="13" y="15" fontFamily="Hubot Sans Variable, sans-serif" fontSize="10" fontWeight="700" letterSpacing="1.5" fill="#241600">OVER THE TOP</text>
-        <text x="13" y="27" fontFamily="Hubot Sans Variable, sans-serif" fontSize="8.5" fontWeight="500" fill="#241600" fillOpacity="0.8">shaft steep at transition · P5</text>
-      </g>
-      <line x1="263" y1="86" x2="252" y2="168" stroke={AMBER} strokeWidth="1.1" strokeDasharray="2 2" />
+      {/* Interactive good / fault markers */}
+      {s.markers.map((m) => {
+        const c = p(m.at)
+        const col = m.kind === 'good' ? FAIRWAY : RED
+        const sel = selectedId === m.id
+        return (
+          <g key={m.id} onClick={() => onSelect(m)} style={{ cursor: 'pointer' }}>
+            {sel && <circle cx={c[0]} cy={c[1]} r="15" fill={col} fillOpacity="0.14" />}
+            <circle cx={c[0]} cy={c[1]} r="9" fill="#FCFBF8" stroke={col} strokeWidth="2.2" />
+            {m.kind === 'good' ? (
+              <path d={`M ${c[0] - 3.4} ${c[1]} l 2.4 2.6 l 4.6 -5.2`} fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            ) : (
+              <g stroke={col} strokeWidth="2" strokeLinecap="round">
+                <line x1={c[0] - 2.8} y1={c[1] - 2.8} x2={c[0] + 2.8} y2={c[1] + 2.8} />
+                <line x1={c[0] + 2.8} y1={c[1] - 2.8} x2={c[0] - 2.8} y2={c[1] + 2.8} />
+              </g>
+            )}
+          </g>
+        )
+      })}
 
-      {/* On-plane confirmation lower in the swing */}
-      <g transform="translate(24,250)">
-        <rect x="0" y="0" width="98" height="20" rx="6" fill="#FCFBF8" stroke={INK} strokeOpacity="0.1" />
-        <circle cx="12" cy="10" r="3" fill={FAIRWAY} />
-        <text x="22" y="13.5" fontFamily="Hubot Sans Variable, sans-serif" fontSize="8.5" fontWeight="600" letterSpacing="1" fill={INK} fillOpacity="0.7">ON PLANE · P3</text>
-      </g>
-
-      {/* Video affordances */}
+      {/* Affordances */}
       <text x="16" y="346" fontFamily="Hubot Sans Variable, sans-serif" fontSize="8.5" fontWeight="600" letterSpacing="1.5" fill={INK} fillOpacity="0.4">YOUR CAPTURE · DTL</text>
       <text x="330" y="346" fontFamily="Hubot Sans Variable, sans-serif" fontSize="8.5" fontWeight="500" fill={INK} fillOpacity="0.4">00:03:12</text>
 
-      <rect width="390" height="360" fill="url(#vig)" />
+      <rect width="390" height="360" fill="url(#vig)" pointerEvents="none" />
     </svg>
   )
 }
