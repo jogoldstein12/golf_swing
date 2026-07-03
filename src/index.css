@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: #f5f3ee;
+    color: #191712;
+    font-family: 'Hubot Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Instrument Serif runs a touch large on the baseline; nudge for optical balance. */
+  .font-display {
+    font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .label {
+    font-family: 'Hubot Sans Variable', ui-sans-serif, system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(25, 23, 18, 0.45);
+  }
+
+  /* Warm grain to defeat flat digital sterility — extremely subtle. */
+  .grain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.025;
+    z-index: 50;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .hairline {
+    border-color: rgba(25, 23, 18, 0.08);
+  }
+}
