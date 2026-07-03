@@ -1,0 +1,70 @@
+name: SwingThrough
+options:
+  bundleIdPrefix: com.swingthrough
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: "NO"
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: "YES"
+
+packages:
+  SwingKit:
+    path: SwingKit
+
+targets:
+  SwingThrough:
+    type: application
+    platform: iOS
+    sources:
+      - path: SwingThrough
+      - path: assets/fonts/app
+        buildPhase: resources
+    dependencies:
+      - package: SwingKit
+        product: SwingKit
+    info:
+      path: SwingThrough/Info.plist
+      properties:
+        CFBundleDisplayName: Swing Through
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIUserInterfaceStyle: Light
+        NSCameraUsageDescription: Swing Through records your swing to measure it. Video is analyzed on this device.
+        NSMicrophoneUsageDescription: Audio is captured with your swing recordings.
+        NSPhotoLibraryUsageDescription: Import a swing video from your library for analysis.
+        UIAppFonts:
+          - InstrumentSerif-Regular.ttf
+          - InstrumentSerif-Italic.ttf
+          - Satoshi-Regular.otf
+          - Satoshi-Italic.otf
+          - Satoshi-Medium.otf
+          - Satoshi-MediumItalic.otf
+          - Satoshi-Bold.otf
+          - Satoshi-Black.otf
+
+  SwingThroughUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [SwingThroughUITests]
+    dependencies:
+      - target: SwingThrough
+
+schemes:
+  SwingThrough:
+    build:
+      targets:
+        SwingThrough: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SwingThroughUITests

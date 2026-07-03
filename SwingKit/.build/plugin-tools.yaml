@@ -1,0 +1,168 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "PackageStructure": ["<PackageStructure>"]
+  "SwingKit-arm64-apple-macosx-debug.module": ["<SwingKit-arm64-apple-macosx-debug.module>"]
+  "SwingKitPackageTests-arm64-apple-macosx-debug.module": ["<SwingKitPackageTests-arm64-apple-macosx-debug.module>"]
+  "SwingKitPackageTests-arm64-apple-macosx-debug.test": ["<SwingKitPackageTests-arm64-apple-macosx-debug.test>"]
+  "SwingKitTests-arm64-apple-macosx-debug.module": ["<SwingKitTests-arm64-apple-macosx-debug.module>"]
+  "main": ["<SwingKit-arm64-apple-macosx-debug.module>","<swingctl-arm64-apple-macosx-debug.exe>","<swingctl-arm64-apple-macosx-debug.module>"]
+  "swingctl-arm64-apple-macosx-debug.exe": ["<swingctl-arm64-apple-macosx-debug.exe>"]
+  "swingctl-arm64-apple-macosx-debug.module": ["<swingctl-arm64-apple-macosx-debug.module>"]
+  "test": ["<SwingKit-arm64-apple-macosx-debug.module>","<SwingKitPackageTests-arm64-apple-macosx-debug.test>","<SwingKitTests-arm64-apple-macosx-debug.module>","<swingctl-arm64-apple-macosx-debug.exe>","<swingctl-arm64-apple-macosx-debug.module>"]
+default: "main"
+nodes:
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/swingctl/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Tests/SwingKitTests/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl":
+    is-mutated: true
+commands:
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Joints.swift","/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Report.swift"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/sources"]
+    description: "Write auxiliary file /Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/sources"
+
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.derived/runner.swift"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.build/sources"]
+    description: "Write auxiliary file /Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.build/sources"
+
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.derived/runner.swift":
+    tool: test-entry-point-tool
+    inputs: []
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.derived/runner.swift"]
+
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Joints.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Report.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.build/runner.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitTests.build/ContractTests.swift.o"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.product/Objects.LinkFileList"
+
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitTests.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/nancycolesmd/Documents/golf_swing/SwingKit/Tests/SwingKitTests/ContractTests.swift"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitTests.build/sources"]
+    description: "Write auxiliary file /Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitTests.build/sources"
+
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl-entitlement.plist":
+    tool: write-auxiliary-file
+    inputs: ["<entitlement-plist>","<com.apple.security.get-task-allow>"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl-entitlement.plist"]
+    description: "Write auxiliary file /Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl-entitlement.plist"
+
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/swingctl/main.swift"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.build/sources"]
+    description: "Write auxiliary file /Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.build/sources"
+
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Joints.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Report.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.build/main.swift.o"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.product/Objects.LinkFileList"
+
+  "<SwingKit-arm64-apple-macosx-debug.module>":
+    tool: phony
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Joints.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Report.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKit.swiftmodule"]
+    outputs: ["<SwingKit-arm64-apple-macosx-debug.module>"]
+
+  "<SwingKitPackageTests-arm64-apple-macosx-debug.module>":
+    tool: phony
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.build/runner.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKitPackageTests.swiftmodule"]
+    outputs: ["<SwingKitPackageTests-arm64-apple-macosx-debug.module>"]
+
+  "<SwingKitPackageTests-arm64-apple-macosx-debug.test>":
+    tool: phony
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.xctest/Contents/MacOS/SwingKitPackageTests"]
+    outputs: ["<SwingKitPackageTests-arm64-apple-macosx-debug.test>"]
+
+  "<SwingKitTests-arm64-apple-macosx-debug.module>":
+    tool: phony
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitTests.build/ContractTests.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKitTests.swiftmodule"]
+    outputs: ["<SwingKitTests-arm64-apple-macosx-debug.module>"]
+
+  "<swingctl-arm64-apple-macosx-debug.exe>":
+    tool: phony
+    inputs: ["<swingctl-arm64-apple-macosx-debug.exe-CodeSigning>"]
+    outputs: ["<swingctl-arm64-apple-macosx-debug.exe>"]
+
+  "<swingctl-arm64-apple-macosx-debug.module>":
+    tool: phony
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.build/main.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/swingctl.swiftmodule"]
+    outputs: ["<swingctl-arm64-apple-macosx-debug.module>"]
+
+  "C.SwingKit-arm64-apple-macosx-debug.module":
+    tool: shell
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Joints.swift","/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Report.swift","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/sources"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Joints.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Report.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKit.swiftmodule"]
+    description: "Compiling Swift Module 'SwingKit' (2 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","SwingKit","-emit-dependencies","-emit-module","-emit-module-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKit.swiftmodule","-output-file-map","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/output-file-map.json","-parse-as-library","-incremental","-c","@/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/sources","-I","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx14.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j8","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-parse-as-library","-emit-objc-header","-emit-objc-header-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/include/SwingKit-Swift.h","-swift-version","5","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","swingkit"]
+
+  "C.SwingKitPackageTests-arm64-apple-macosx-debug.module":
+    tool: shell
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.derived/runner.swift","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKitTests.swiftmodule","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.build/sources"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.build/runner.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKitPackageTests.swiftmodule"]
+    description: "Compiling Swift Module 'SwingKitPackageTests' (1 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","SwingKitPackageTests","-emit-dependencies","-emit-module","-emit-module-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKitPackageTests.swiftmodule","-output-file-map","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.build/output-file-map.json","-parse-as-library","-incremental","-c","@/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.build/sources","-I","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx14.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-Xfrontend","-enable-cross-import-overlays","-j8","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-parse-as-library","-emit-objc-header","-emit-objc-header-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.build/include/SwingKitPackageTests-Swift.h","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","swingkit"]
+
+  "C.SwingKitPackageTests-arm64-apple-macosx-debug.test":
+    tool: shell
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Joints.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Report.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.build/runner.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitTests.build/ContractTests.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.product/Objects.LinkFileList"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.xctest/Contents/MacOS/SwingKitPackageTests"]
+    description: "Linking ./.build/arm64-apple-macosx/debug/SwingKitPackageTests.xctest/Contents/MacOS/SwingKitPackageTests"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug","-o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.xctest/Contents/MacOS/SwingKitPackageTests","-module-name","SwingKitPackageTests","-Xlinker","-no_warn_duplicate_libraries","-Xlinker","-bundle","-Xlinker","-rpath","-Xlinker","@loader_path/../../../","@/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitPackageTests.product/Objects.LinkFileList","-Xlinker","-rpath","-Xlinker","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx","-target","arm64-apple-macosx14.0","-Xlinker","-add_ast_path","-Xlinker","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKit.swiftmodule","-Xlinker","-add_ast_path","-Xlinker","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKitPackageTests.swiftmodule","-Xlinker","-add_ast_path","-Xlinker","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKitTests.swiftmodule","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
+
+  "C.SwingKitTests-arm64-apple-macosx-debug.module":
+    tool: shell
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/Tests/SwingKitTests/ContractTests.swift","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKit.swiftmodule","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitTests.build/sources"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitTests.build/ContractTests.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKitTests.swiftmodule"]
+    description: "Compiling Swift Module 'SwingKitTests' (1 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","SwingKitTests","-emit-dependencies","-emit-module","-emit-module-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKitTests.swiftmodule","-output-file-map","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitTests.build/output-file-map.json","-parse-as-library","-incremental","-c","@/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKitTests.build/sources","-I","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx14.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-Xfrontend","-enable-cross-import-overlays","-j8","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-parse-as-library","-swift-version","5","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","swingkit"]
+
+  "C.swingctl-arm64-apple-macosx-debug.exe":
+    tool: shell
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Joints.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/SwingKit.build/Report.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.build/main.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.product/Objects.LinkFileList"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl"]
+    description: "Linking ./.build/arm64-apple-macosx/debug/swingctl"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug","-o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl","-module-name","swingctl","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-alias","-Xlinker","_swingctl_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.product/Objects.LinkFileList","-Xlinker","-rpath","-Xlinker","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx","-target","arm64-apple-macosx14.0","-Xlinker","-add_ast_path","-Xlinker","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKit.swiftmodule","-Xlinker","-add_ast_path","-Xlinker","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/swingctl.swiftmodule","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
+
+  "C.swingctl-arm64-apple-macosx-debug.exe-entitlements":
+    tool: shell
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl-entitlement.plist"]
+    outputs: ["<swingctl-arm64-apple-macosx-debug.exe-CodeSigning>"]
+    description: "Applying debug entitlements to ./.build/arm64-apple-macosx/debug/swingctl"
+    args: ["codesign","--force","--sign","-","--entitlements","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl-entitlement.plist","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl"]
+
+  "C.swingctl-arm64-apple-macosx-debug.module":
+    tool: shell
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/swingctl/main.swift","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/SwingKit.swiftmodule","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.build/sources"]
+    outputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.build/main.swift.o","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/swingctl.swiftmodule"]
+    description: "Compiling Swift Module 'swingctl' (1 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","swingctl","-emit-dependencies","-emit-module","-emit-module-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules/swingctl.swiftmodule","-output-file-map","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.build/output-file-map.json","-incremental","-c","@/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/swingctl.build/sources","-I","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx14.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j8","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","swingctl_main","-swift-version","5","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","swingkit"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/","/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/swingctl/","/Users/nancycolesmd/Documents/golf_swing/SwingKit/Tests/SwingKitTests/","/Users/nancycolesmd/Documents/golf_swing/SwingKit/Package.swift","/Users/nancycolesmd/Documents/golf_swing/SwingKit/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+
