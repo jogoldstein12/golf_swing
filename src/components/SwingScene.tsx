@@ -147,12 +147,13 @@ function Scene() {
   )
 }
 
-export default function SwingScene() {
+export default function SwingScene({ view = 'orbit' }: { view?: 'orbit' | 'dtl' }) {
+  const dtl = view === 'dtl'
   return (
     <Canvas
       shadows
       dpr={[1, 2]}
-      camera={{ position: [1.95, 0.85, 2.95], fov: 34 }}
+      camera={dtl ? { position: [2.75, 0.62, 2.05], fov: 32 } : { position: [1.95, 0.85, 2.95], fov: 34 }}
       gl={{ antialias: true, preserveDrawingBuffer: true }}
       style={{ background: 'transparent' }}
     >
@@ -166,16 +167,18 @@ export default function SwingScene() {
       />
       <directionalLight position={[-4, 2.5, -1.5]} intensity={0.5} color="#fff6e8" />
       <Scene />
-      <OrbitControls
-        enablePan={false}
-        enableDamping
-        dampingFactor={0.08}
-        minDistance={2.2}
-        maxDistance={5}
-        minPolarAngle={0.55}
-        maxPolarAngle={1.7}
-        target={[0, 0.12, 0]}
-      />
+      {!dtl && (
+        <OrbitControls
+          enablePan={false}
+          enableDamping
+          dampingFactor={0.08}
+          minDistance={2.2}
+          maxDistance={5}
+          minPolarAngle={0.55}
+          maxPolarAngle={1.7}
+          target={[0, 0.12, 0]}
+        />
+      )}
     </Canvas>
   )
 }

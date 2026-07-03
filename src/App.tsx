@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import SwingScene from './components/SwingScene'
+import VideoAnalysis from './components/VideoAnalysis'
 import { METRICS, SWING_SCORE, type Metric } from './data/swing'
 
 const KEYFRAMES = ['Address', 'Top', 'Impact', 'Follow'] as const
@@ -33,7 +34,8 @@ function Meter({ m }: { m: Metric }) {
 }
 
 export default function App() {
-  const [frame, setFrame] = useState<(typeof KEYFRAMES)[number]>('Address')
+  const [frame, setFrame] = useState<(typeof KEYFRAMES)[number]>('Top')
+  const [pane, setPane] = useState<'video' | '3d'>('video')
 
   return (
     <div className="relative min-h-full w-full bg-bone grain">
@@ -69,11 +71,33 @@ export default function App() {
         >
           <div className="absolute left-5 top-5 z-10 flex items-center gap-2">
             <span className="h-[6px] w-[6px] rounded-full bg-fairway-deep" />
-            <span className="label">{frame} · 3D</span>
+            <span className="label">
+              {frame} · {pane === 'video' ? 'Down the line' : '3D'}
+            </span>
           </div>
-          <span className="label absolute right-5 top-5 z-10 !text-ink-25">Drag to orbit</span>
-          <div className="h-[360px] w-full">
-            <SwingScene />
+          {/* Video / 3D toggle */}
+          <div className="absolute right-4 top-4 z-10 flex rounded-full bg-bone/80 p-[3px] backdrop-blur">
+            {(['video', '3d'] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPane(p)}
+                className={`relative rounded-full px-3 py-[5px] text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors ${
+                  pane === p ? 'text-bone' : 'text-ink-45'
+                }`}
+              >
+                {pane === p && (
+                  <motion.span
+                    layoutId="pane-pill"
+                    className="absolute inset-0 rounded-full bg-ink"
+                    transition={{ type: 'spring', stiffness: 400, damping: 34 }}
+                  />
+                )}
+                <span className="relative">{p === 'video' ? 'Video' : '3D'}</span>
+              </button>
+            ))}
+          </div>
+          <div className="relative h-[360px] w-full">
+            {pane === 'video' ? <VideoAnalysis /> : <SwingScene />}
           </div>
           {/* Keyframe scrubber */}
           <div className="flex items-center justify-between border-t border-ink-08 px-2 py-1">
