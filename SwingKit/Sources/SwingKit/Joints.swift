@@ -31,15 +31,26 @@ public struct PoseFrame: Codable, Sendable {
     public var j3: [Joint: SIMD3<Double>]
     public var j2: [Joint: SIMD2<Double>]
     public var confidence: [Joint: Double]
+    /// Vision's cameraOriginMatrix (column-major 4×4): camera pose relative to the
+    /// per-frame model origin. Since the physical camera is static in our captures,
+    /// frame-to-frame changes here recover the subject's world translation (sway/
+    /// lift/thrust) that root-origin model space otherwise discards.
+    public var cameraTransform: [Double]?
+    /// Vision's estimated subject height in meters (for unit conversion to inches).
+    public var bodyHeight: Double?
 
     public init(time: Double,
                 j3: [Joint: SIMD3<Double>] = [:],
                 j2: [Joint: SIMD2<Double>] = [:],
-                confidence: [Joint: Double] = [:]) {
+                confidence: [Joint: Double] = [:],
+                cameraTransform: [Double]? = nil,
+                bodyHeight: Double? = nil) {
         self.time = time
         self.j3 = j3
         self.j2 = j2
         self.confidence = confidence
+        self.cameraTransform = cameraTransform
+        self.bodyHeight = bodyHeight
     }
 
     /// Grip proxy: midpoint of the wrists. The club is not a tracked joint; all

@@ -129,6 +129,11 @@ public struct PoseExtractor {
                         frame.j3[joint] = SIMD3(Double(c.x), Double(c.y), Double(c.z))
                     }
                 }
+                let m = obs.cameraOriginMatrix
+                frame.cameraTransform = [
+                    m.columns.0, m.columns.1, m.columns.2, m.columns.3,
+                ].flatMap { [Double($0.x), Double($0.y), Double($0.z), Double($0.w)] }
+                frame.bodyHeight = Double(obs.bodyHeight)
             }
             if !frame.j2.isEmpty || !frame.j3.isEmpty {
                 frames.append(frame)

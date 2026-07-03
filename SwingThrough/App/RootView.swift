@@ -4,6 +4,16 @@ import SwiftUI
 
 struct RootView: View {
     var body: some View {
+        // Dev routing: ST_SCREEN=avatar|capture jumps straight into a module harness
+        // (simctl launch --setenv). Unset = the real app.
+        switch ProcessInfo.processInfo.environment["ST_SCREEN"] {
+        case "avatar": AvatarPreviewScreen()
+        case "capture": CaptureScreen()
+        default: home
+        }
+    }
+
+    private var home: some View {
         ZStack {
             Color.bone.grain().ignoresSafeArea()
 
