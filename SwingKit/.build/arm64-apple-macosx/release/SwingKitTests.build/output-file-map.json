@@ -1,0 +1,13 @@
+{
+  "": {
+    "dependencies": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/SwingKitTests.d",
+    "object": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/SwingKitTests.o",
+    "swift-dependencies": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/primary.swiftdeps"
+  },
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Tests/SwingKitTests/ContractTests.swift": {
+    "object": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/ContractTests.swift.o",
+    "swiftmodule": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/ContractTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/ContractTests.swiftdeps",
+    "diagnostics": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/ContractTests.dia"
+  }
+}

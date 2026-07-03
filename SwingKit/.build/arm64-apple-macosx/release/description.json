@@ -1,0 +1,822 @@
+{
+  "builtTestProducts" : [
+    {
+      "binaryPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.xctest/Contents/MacOS/SwingKitPackageTests",
+      "packagePath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit",
+      "productName" : "SwingKitPackageTests"
+    }
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.SwingKit-arm64-apple-macosx-release.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/sources",
+      "importPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Joints.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Pipeline/PoseExtractor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Report.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "SwingKit",
+      "moduleOutputPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules/SwingKit.swiftmodule",
+      "objects" : [
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/Joints.swift.o",
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/PoseExtractor.swift.o",
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/Report.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-whole-module-optimization",
+        "-num-threads",
+        "8",
+        "-serialize-diagnostics",
+        "-O",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/include/SwingKit-Swift.h",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "swingkit"
+      ],
+      "outputFileMapPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/Joints.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/PoseExtractor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/Report.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules/SwingKit.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Joints.swift",
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Pipeline/PoseExtractor.swift",
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Report.swift"
+      ],
+      "tempsPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build",
+      "wholeModuleOptimization" : true
+    },
+    "C.SwingKitPackageTests-arm64-apple-macosx-release.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.build/sources",
+      "importPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.derived/runner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules/SwingKitTests.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "SwingKitPackageTests",
+      "moduleOutputPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules/SwingKitPackageTests.swiftmodule",
+      "objects" : [
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.build/runner.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-whole-module-optimization",
+        "-num-threads",
+        "8",
+        "-serialize-diagnostics",
+        "-O",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.build/include/SwingKitPackageTests-Swift.h",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "swingkit"
+      ],
+      "outputFileMapPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules/SwingKitPackageTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.derived/runner.swift"
+      ],
+      "tempsPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.build",
+      "wholeModuleOptimization" : true
+    },
+    "C.SwingKitTests-arm64-apple-macosx-release.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/sources",
+      "importPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Tests/SwingKitTests/ContractTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules/SwingKit.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "SwingKitTests",
+      "moduleOutputPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules/SwingKitTests.swiftmodule",
+      "objects" : [
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/ContractTests.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-whole-module-optimization",
+        "-num-threads",
+        "8",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/index/store",
+        "-O",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "swingkit"
+      ],
+      "outputFileMapPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/ContractTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules/SwingKitTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Tests/SwingKitTests/ContractTests.swift"
+      ],
+      "tempsPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build",
+      "wholeModuleOptimization" : true
+    },
+    "C.swingctl-arm64-apple-macosx-release.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/sources",
+      "importPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/swingctl/main.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules/SwingKit.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "swingctl",
+      "moduleOutputPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules/swingctl.swiftmodule",
+      "objects" : [
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/main.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-whole-module-optimization",
+        "-num-threads",
+        "8",
+        "-serialize-diagnostics",
+        "-O",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "swingctl_main",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "swingkit"
+      ],
+      "outputFileMapPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/main.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules/swingctl.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/swingctl/main.swift"
+      ],
+      "tempsPath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build",
+      "wholeModuleOptimization" : true
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "SwingKit" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "SwingKit",
+      "-package-name",
+      "swingkit",
+      "-c",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Joints.swift",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Pipeline/PoseExtractor.swift",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Report.swift",
+      "-I",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-whole-module-optimization",
+      "-num-threads",
+      "8",
+      "-serialize-diagnostics",
+      "-O",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/include/SwingKit-Swift.h",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "swingkit",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "SwingKitPackageTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "SwingKitPackageTests",
+      "-package-name",
+      "swingkit",
+      "-c",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.derived/runner.swift",
+      "-I",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-whole-module-optimization",
+      "-num-threads",
+      "8",
+      "-serialize-diagnostics",
+      "-O",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.build/include/SwingKitPackageTests-Swift.h",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "swingkit",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "SwingKitTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "SwingKitTests",
+      "-package-name",
+      "swingkit",
+      "-c",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Tests/SwingKitTests/ContractTests.swift",
+      "-I",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-whole-module-optimization",
+      "-num-threads",
+      "8",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/index/store",
+      "-O",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "swingkit",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "swingctl" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "swingctl",
+      "-package-name",
+      "swingkit",
+      "-c",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/swingctl/main.swift",
+      "-I",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-whole-module-optimization",
+      "-num-threads",
+      "8",
+      "-serialize-diagnostics",
+      "-O",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "swingctl_main",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "swingkit",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "SwingKit" : [
+
+    ],
+    "SwingKitPackageTests" : [
+      "SwingKitTests",
+      "SwingKit"
+    ],
+    "SwingKitTests" : [
+      "SwingKit"
+    ],
+    "swingctl" : [
+      "SwingKit"
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+    "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.derived/runner.swift" : {
+      "inputs" : [
+
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.derived/runner.swift"
+        }
+      ]
+    }
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Joints.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Pipeline/PoseExtractor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/SwingKit/Report.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/sources"
+    },
+    "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.derived/runner.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.build/sources"
+    },
+    "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/Joints.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/PoseExtractor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/Report.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/ContractTests.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitPackageTests.product/Objects.LinkFileList"
+    },
+    "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Tests/SwingKitTests/ContractTests.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKitTests.build/sources"
+    },
+    "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+    },
+    "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/swingctl/main.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/sources"
+    },
+    "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/Joints.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/PoseExtractor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/SwingKit.build/Report.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/main.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.product/Objects.LinkFileList"
+    }
+  }
+}

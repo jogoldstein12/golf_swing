@@ -1,0 +1,13 @@
+{
+  "": {
+    "dependencies": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/swingctl.d",
+    "object": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/swingctl.o",
+    "swift-dependencies": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/primary.swiftdeps"
+  },
+  "/Users/nancycolesmd/Documents/golf_swing/SwingKit/Sources/swingctl/main.swift": {
+    "object": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/main.swift.o",
+    "swiftmodule": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/main~partial.swiftmodule",
+    "swift-dependencies": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/main.swiftdeps",
+    "diagnostics": "/Users/nancycolesmd/Documents/golf_swing/SwingKit/.build/arm64-apple-macosx/release/swingctl.build/main.dia"
+  }
+}
