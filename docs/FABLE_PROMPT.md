@@ -166,6 +166,24 @@ assume it. Set up a loop to check your own work:
 - Use fresh-context checks periodically: re-verify the build, the key flows, and the numbers
   against this spec as you go.
 
+### Delegation and verification (use subagents)
+You dispatch subagents well — use them, and delegate freely while you keep working. Two
+patterns matter most here:
+- **Fresh-context verifiers (highest value).** After you finish a screen or the analysis
+  pipeline, spin up a subagent with fresh context to check it against this spec — separate
+  eyes catch what self-review misses. Run two kinds: an **aesthetics** verifier that drives
+  the Simulator, dumps frames, and hunts for slop, jank, misalignment, and hitched
+  transitions; and an **analysis-correctness** verifier that runs the pose→biomechanics
+  pipeline on the sample videos and confirms the plane angles, sequence order, checkpoint
+  timings, and 6-DOF numbers are actually right. Treat a failed verification as a bug to fix,
+  not a note to file.
+- **Parallel independent modules.** The capture flow, the biomechanics engine, the 3D
+  avatar/animation, and the design-system components are largely independent — build them in
+  parallel with subagents and integrate, rather than strictly serially. Keep a long-lived
+  subagent on a module so it retains context across its subtasks.
+Step in if a subagent drifts off-spec or is missing context. Don't over-formalize this into a
+rigid pipeline — delegate where it genuinely helps and stay in the loop.
+
 ### Working style
 - Initialize git immediately and commit as you go. Keep a `docs/` with your intent and
   decisions so you don't lose the thread across long runs. Document *why*, not just *what*.
