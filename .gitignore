@@ -19,3 +19,6 @@ assets/fonts/
 
 # local secrets
 *.apikey
+
+# SPM build artifacts
+SwingKit/.build/
