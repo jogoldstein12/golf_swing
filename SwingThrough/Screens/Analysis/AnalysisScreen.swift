@@ -6,6 +6,7 @@ import SwingKit
 
 struct AnalysisScreen: View {
     @Bindable var model: AnalysisModel
+    var onBack: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
@@ -67,9 +68,26 @@ struct AnalysisScreen: View {
 
     private var header: some View {
         HStack {
-            Text("Swing Through")
-                .font(Type.display(23))
-                .foregroundStyle(Color.ink)
+            if let onBack {
+                Button(action: onBack) {
+                    HStack(spacing: 9) {
+                        ZStack {
+                            Circle().strokeBorder(Color.ink25, lineWidth: 1)
+                            ChevronGlyph(pointsRight: false)
+                                .stroke(Color.ink70, style: .init(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+                                .frame(width: 6, height: 11)
+                        }
+                        .frame(width: 32, height: 32)
+                        MicroLabel("Swings", color: .ink70)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PressScaleStyle())
+            } else {
+                Text("Swing Through")
+                    .font(Type.display(23))
+                    .foregroundStyle(Color.ink)
+            }
             Spacer()
             MicroLabel(model.report.club, color: .ink70)
             Circle().fill(Color.ink).frame(width: 26, height: 26)

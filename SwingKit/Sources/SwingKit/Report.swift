@@ -247,6 +247,9 @@ public struct SwingReport: Codable, Identifiable, Sendable {
     /// checkpoint times are source-video times inside this window.
     public var windowStart: Double?
     public var windowEnd: Double?
+    /// Source video pixel dimensions (orientation applied) — overlays need the aspect.
+    public var videoWidth: Double?
+    public var videoHeight: Double?
 
     public init(id: UUID = UUID(), date: Date = .init(), club: String, view: CaptureView,
                 videoFileName: String? = nil, duration: Double, frameRate: Double,
@@ -256,7 +259,8 @@ public struct SwingReport: Codable, Identifiable, Sendable {
                 metrics: [MetricValue], markers: [SwingMarker], score: SwingScore,
                 coaching: CoachingPlan? = nil,
                 handedness: Handedness? = nil,
-                windowStart: Double? = nil, windowEnd: Double? = nil) {
+                windowStart: Double? = nil, windowEnd: Double? = nil,
+                videoWidth: Double? = nil, videoHeight: Double? = nil) {
         self.id = id; self.date = date; self.club = club; self.view = view
         self.videoFileName = videoFileName; self.duration = duration; self.frameRate = frameRate
         self.frames = frames; self.checkpoints = checkpoints; self.plane = plane
@@ -265,6 +269,7 @@ public struct SwingReport: Codable, Identifiable, Sendable {
         self.coaching = coaching
         self.handedness = handedness
         self.windowStart = windowStart; self.windowEnd = windowEnd
+        self.videoWidth = videoWidth; self.videoHeight = videoHeight
     }
 
     public func mark(_ p: SwingPosition) -> CheckpointMark? {

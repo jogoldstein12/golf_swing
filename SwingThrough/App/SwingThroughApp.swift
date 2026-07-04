@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 @main
@@ -7,5 +8,6 @@ struct SwingThroughApp: App {
             RootView()
                 .preferredColorScheme(.light)
         }
+        .modelContainer(for: SwingRecord.self)
     }
 }

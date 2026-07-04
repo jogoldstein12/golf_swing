@@ -46,6 +46,23 @@ struct PauseGlyph: Shape {
     }
 }
 
+struct ChevronGlyph: Shape {
+    var pointsRight = true
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        if pointsRight {
+            p.move(to: CGPoint(x: r.minX, y: r.minY))
+            p.addLine(to: CGPoint(x: r.maxX, y: r.midY))
+            p.addLine(to: CGPoint(x: r.minX, y: r.maxY))
+        } else {
+            p.move(to: CGPoint(x: r.maxX, y: r.minY))
+            p.addLine(to: CGPoint(x: r.minX, y: r.midY))
+            p.addLine(to: CGPoint(x: r.maxX, y: r.maxY))
+        }
+        return p
+    }
+}
+
 /// Exclamation stroke for fault markers.
 struct BangGlyph: Shape {
     func path(in r: CGRect) -> Path {

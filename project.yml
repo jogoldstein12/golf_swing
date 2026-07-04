@@ -54,6 +54,9 @@ targets:
     type: bundle.ui-testing
     platform: iOS
     sources: [SwingThroughUITests]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
     dependencies:
       - target: SwingThrough
 
