@@ -109,16 +109,45 @@ public struct KinematicSequence: Codable, Sendable {
 /// Swing-plane measurement (down-the-line). Signed deviations: + is steep/above the
 /// base plane (over the top), − is shallow/under.
 public struct PlaneAnalysis: Codable, Sendable {
+    /// How the base plane line was obtained. nil = plane analysis unavailable
+    /// (shaft and ball detection both failed their quality gates, or face-on view);
+    /// deviations are then empty — a missing plane is never invented.
+    public enum Basis: String, Codable, Sendable {
+        case shaftDetected      // shaft line found in the address video frame
+        case gripBallLine       // fallback: address grip → detected ball
+    }
     public var basePlaneAngle: Double            // deg from horizontal, address shaft plane
     public var deviationByPosition: [SwingPosition: Double]  // grip-path deviation, deg
     public var stateByPosition: [SwingPosition: PlaneState]
+    /// The base plane line in normalized image space (top-left origin), for drawing
+    /// directly over the video: [ground/ball end, upper end]. nil when the shaft
+    /// couldn't be measured (never fabricate it).
+    public var basePlaneLine2D: [SIMD2<Double>]?
+    public var basis: Basis?
+    /// 3D cross-check: inclination of the downswing grip-path plane minus the
+    /// backswing grip-path plane (deg, + = downswing steeper, an over-the-top
+    /// signature). From grip3 in the yaw-stabilized frame; lower trust than the
+    /// 2D image-space numbers (see VALIDATION.md).
+    public var planeShift3D: Double?
     public init(basePlaneAngle: Double,
                 deviationByPosition: [SwingPosition: Double],
-                stateByPosition: [SwingPosition: PlaneState]) {
+                stateByPosition: [SwingPosition: PlaneState],
+                basePlaneLine2D: [SIMD2<Double>]? = nil,
+                basis: Basis? = nil,
+                planeShift3D: Double? = nil) {
         self.basePlaneAngle = basePlaneAngle
         self.deviationByPosition = deviationByPosition
         self.stateByPosition = stateByPosition
+        self.basePlaneLine2D = basePlaneLine2D
+        self.basis = basis
+        self.planeShift3D = planeShift3D
     }
+}
+
+public enum Handedness: String, Codable, Sendable {
+    case right, left
+    /// The target-side (lead) arm: left for a right-handed golfer.
+    public var leadIsLeft: Bool { self == .right }
 }
 
 public enum PlaneState: String, Codable, Sendable {
@@ -210,6 +239,14 @@ public struct SwingReport: Codable, Identifiable, Sendable {
     public var markers: [SwingMarker]
     public var score: SwingScore
     public var coaching: CoachingPlan?
+    // Optional post-v1 additions (JSON-compatible: absent in old fixtures).
+    /// Detected automatically from the tracks (wrist stacking at address + trail-elbow
+    /// fold at the top). nil only for legacy reports.
+    public var handedness: Handedness?
+    /// The analyzed window in the source video's own timeline. `frames[].time` and
+    /// checkpoint times are source-video times inside this window.
+    public var windowStart: Double?
+    public var windowEnd: Double?
 
     public init(id: UUID = UUID(), date: Date = .init(), club: String, view: CaptureView,
                 videoFileName: String? = nil, duration: Double, frameRate: Double,
@@ -217,13 +254,17 @@ public struct SwingReport: Codable, Identifiable, Sendable {
                 sequence: KinematicSequence,
                 pelvisDOF: [SwingPosition: SixDOF], chestDOF: [SwingPosition: SixDOF],
                 metrics: [MetricValue], markers: [SwingMarker], score: SwingScore,
-                coaching: CoachingPlan? = nil) {
+                coaching: CoachingPlan? = nil,
+                handedness: Handedness? = nil,
+                windowStart: Double? = nil, windowEnd: Double? = nil) {
         self.id = id; self.date = date; self.club = club; self.view = view
         self.videoFileName = videoFileName; self.duration = duration; self.frameRate = frameRate
         self.frames = frames; self.checkpoints = checkpoints; self.plane = plane
         self.sequence = sequence; self.pelvisDOF = pelvisDOF; self.chestDOF = chestDOF
         self.metrics = metrics; self.markers = markers; self.score = score
         self.coaching = coaching
+        self.handedness = handedness
+        self.windowStart = windowStart; self.windowEnd = windowEnd
     }
 
     public func mark(_ p: SwingPosition) -> CheckpointMark? {

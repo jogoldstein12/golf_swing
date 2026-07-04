@@ -3,13 +3,18 @@
 import SwiftUI
 
 struct RootView: View {
+    @State private var analysis: AnalysisModel = {
+        let demo = DemoData.load()
+        return AnalysisModel(report: demo.report, videoURL: demo.videoURL, videoSize: demo.videoSize)
+    }()
+
     var body: some View {
         // Dev routing: ST_SCREEN=avatar|capture jumps straight into a module harness
         // (simctl launch --setenv). Unset = the real app.
         switch ProcessInfo.processInfo.environment["ST_SCREEN"] {
         case "avatar": AvatarPreviewScreen()
         case "capture": CaptureScreen()
-        default: home
+        default: AnalysisScreen(model: analysis)
         }
     }
 

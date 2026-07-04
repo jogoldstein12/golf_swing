@@ -71,4 +71,11 @@ public extension View {
     func grain(_ intensity: Double = 0.05) -> some View {
         colorEffect(ShaderLibrary.grain(.float(Float(intensity))))
     }
+
+    /// Bone scrim capsule for chrome floating over video/3D content.
+    func scrimChip() -> some View {
+        padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(Color.bone.opacity(0.85)))
+    }
 }
