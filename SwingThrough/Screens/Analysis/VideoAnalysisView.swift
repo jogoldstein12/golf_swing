@@ -95,10 +95,11 @@ struct VideoAnalysisView: View {
 
     @ViewBuilder
     private func markerButtons(_ layout: VideoPaneLayout) -> some View {
-        // Markers pin to the selected checkpoint's pose — hidden during playback,
-        // where the body has moved on.
-        if !model.isPlaying {
-            let frame = model.report.frame(at: model.report.mark(model.selectedPosition)?.time ?? model.time)
+        // Markers pin to the selected checkpoint's pose — hidden during playback and
+        // while scrubbed away from that checkpoint, where the body has moved on.
+        let checkpointTime = model.report.mark(model.selectedPosition)?.time ?? model.time
+        if !model.isPlaying, abs(model.time - checkpointTime) < 0.1 {
+            let frame = model.report.frame(at: checkpointTime)
             ForEach(model.markers(at: model.selectedPosition)) { marker in
                 if let p = frame?.j2[marker.joint] {
                     MarkerDot(marker: marker, selected: model.selectedMarker?.id == marker.id)

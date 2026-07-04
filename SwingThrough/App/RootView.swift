@@ -19,6 +19,8 @@ struct RootView: View {
         case "avatar": AvatarPreviewScreen()
         case "capture": CaptureScreen()
         case "analysis": AnalysisScreen(model: demoAnalysis)
+        case "settings": SettingsSheet()
+        case "analyzing": AnalyzingScreen(progress: 0.55, phase: "Measuring the plane")
         default:
             if env["ST_POS"] != nil || env["ST_SCROLL"] != nil {
                 AnalysisScreen(model: demoAnalysis)

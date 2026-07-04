@@ -131,6 +131,9 @@ struct AnalysisScreen: View {
             Hairline()
             CheckpointScrubber(model: model)
                 .padding(.horizontal, 8)
+            TimelineScrubber(model: model)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 10)
         }
         .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.paper))
         .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
