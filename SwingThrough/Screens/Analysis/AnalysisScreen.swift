@@ -10,6 +10,7 @@ struct AnalysisScreen: View {
     var body: some View {
         ZStack {
             Color.bone.grain().ignoresSafeArea()
+            ScrollViewReader { proxy in
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     header
@@ -34,6 +35,7 @@ struct AnalysisScreen: View {
                         .padding(.top, 40)
 
                     Hairline().padding(.top, 32)
+                        .id("metrics")
 
                     metrics.padding(.top, 8)
 
@@ -41,10 +43,22 @@ struct AnalysisScreen: View {
 
                     PrimaryButton("Record next swing") {}
                         .padding(.top, 36)
+                        .id("bottom")
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 22)
                 .padding(.bottom, 40)
+            }
+            .onAppear {
+                // Dev hook: ST_SCROLL=bottom|metrics jumps for screenshot runs.
+                if let target = ProcessInfo.processInfo.environment["ST_SCROLL"] {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                        withAnimation(.spring(response: 0.6, dampingFraction: 0.9)) {
+                            proxy.scrollTo(target == "bottom" ? "bottom" : "metrics", anchor: target == "bottom" ? .bottom : .top)
+                        }
+                    }
+                }
+            }
             }
         }
     }

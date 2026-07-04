@@ -84,6 +84,7 @@ struct VideoAnalysisView: View {
                            value: offsetY)
 
                 captions
+                    .frame(width: geo.size.width, height: geo.size.height)
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
             .clipped()
@@ -94,16 +95,21 @@ struct VideoAnalysisView: View {
 
     @ViewBuilder
     private func markerButtons(_ layout: VideoPaneLayout) -> some View {
-        let frame = model.report.frame(at: model.report.mark(model.selectedPosition)?.time ?? model.time)
-        ForEach(model.markers(at: model.selectedPosition)) { marker in
-            if let p = frame?.j2[marker.joint] {
-                MarkerDot(marker: marker, selected: model.selectedMarker?.id == marker.id)
-                    .position(layout.videoPoint(p))
-                    .onTapGesture {
-                        withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-                            model.selectedMarker = marker
+        // Markers pin to the selected checkpoint's pose — hidden during playback,
+        // where the body has moved on.
+        if !model.isPlaying {
+            let frame = model.report.frame(at: model.report.mark(model.selectedPosition)?.time ?? model.time)
+            ForEach(model.markers(at: model.selectedPosition)) { marker in
+                if let p = frame?.j2[marker.joint] {
+                    MarkerDot(marker: marker, selected: model.selectedMarker?.id == marker.id)
+                        .position(layout.videoPoint(p))
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                                model.selectedMarker = marker
+                            }
                         }
-                    }
+                        .transition(.opacity.combined(with: .scale(scale: 0.7)))
+                }
             }
         }
     }

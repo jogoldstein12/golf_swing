@@ -123,21 +123,37 @@ final class CaptureController: ObservableObject {
             time: sample.time,
             sourceTime: sample.sourceTime,
             grip: sample.grip,
-            bboxCenterX: (sample.bbox?.midX).map(Double.init),
+            hipCenterX: hipCenterX(sample),
             spineFromVerticalDeg: spineAngle(sample),
             checklistGreen: checklist.allSatisfied,
             requirePosture: angle == .downTheLine)
 
         let events = detector.ingest(input)
+        if debugDetector {
+            NSLog("DET t=%.2f src=%.2f v=%.3f phase=%@ chips=%d",
+                  sample.time, sample.sourceTime, detector.gripSpeed,
+                  String(describing: detector.phase), checklist.allSatisfied ? 1 : 0)
+            for e in events { NSLog("DET   event %@", String(describing: e)) }
+        }
         applyPhase(detector.phase)
         for event in events { handle(event, at: sample) }
         updateSkeleton(sample)
         refreshCue()
     }
 
+    private let debugDetector =
+        ProcessInfo.processInfo.environment["ST_LOG_DETECT"] == "1"
+
     private var detectorActive: Bool {
         if case .captured = detector.phase { return false }
         return true
+    }
+
+    /// Locomotion signal for the walk-off rule: pelvis x, else hip midpoint.
+    private func hipCenterX(_ sample: LivePoseSample) -> Double? {
+        if let p = sample.point(.pelvis) { return p.x }
+        guard let l = sample.point(.hipL), let r = sample.point(.hipR) else { return nil }
+        return (l.x + r.x) * 0.5
     }
 
     /// Spine lean from vertical in degrees, aspect-corrected so the angle is physical,
@@ -276,7 +292,7 @@ final class CaptureController: ObservableObject {
         manualPending = false
         let input = SwingDetector.Input(
             time: sample.time, sourceTime: sample.sourceTime, grip: sample.grip,
-            bboxCenterX: nil, spineFromVerticalDeg: nil,
+            hipCenterX: nil, spineFromVerticalDeg: nil,
             checklistGreen: true, requirePosture: false)
         for event in detector.beginManualCapture(input: input) {
             handle(event, at: sample)

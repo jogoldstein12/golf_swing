@@ -56,8 +56,13 @@ final class SwingDetector {
         var settleTail = 1.0          // s of the settle kept after the swing
         var uprightSpineMax = 20.0    // deg from vertical; below = standing, not addressing
         var postureHold = 0.5         // s standing-straight before disarm (DTL only)
-        var walkSpeed = 0.18          // u/s of bbox center-x = walking through frame
+        var walkSpeed = 0.18          // u/s of hip center-x = walking through frame
         var walkHold = 0.4
+        /// Setup-scale motion ceiling: posture/walk/checklist disarms apply only below
+        /// this grip speed. Above it something swing-like is happening — stay armed and
+        /// let the trigger or the quiet decide. (A takeaway runs 0.2–0.7 u/s; without
+        /// this gate the moving arms would read as a framing problem mid-swing.)
+        var setupMotionMax = 0.45
         var lostAfter = 0.6           // s without a grip point in ready → disarm
         var armedTimeout = 45.0       // s armed with no swing → recycle the take
         var maxCapture = 12.0         // s hard stop on a runaway capture
@@ -67,7 +72,9 @@ final class SwingDetector {
         var time: Double              // monotonic feed clock
         var sourceTime: Double        // media time (wraps on a looping feed)
         var grip: SIMD2<Double>?
-        var bboxCenterX: Double?
+        /// Hip/pelvis center x — a locomotion signal. (Not the bbox center: that
+        /// includes the wrists, and a backswing would read as walking.)
+        var hipCenterX: Double?
         var spineFromVerticalDeg: Double?
         var checklistGreen: Bool
         var requirePosture: Bool      // DTL only
@@ -171,7 +178,7 @@ final class SwingDetector {
     }
 
     private func updateWalk(_ input: Input) {
-        guard let x = input.bboxCenterX else {
+        guard let x = input.hipCenterX else {
             centerX = nil
             return
         }
@@ -245,9 +252,18 @@ final class SwingDetector {
     }
 
     private func disarmReason(_ input: Input) -> DisarmReason? {
-        if !input.checklistGreen { return .checklist }
+        // Ungated safety rules.
         if input.time - gripSeenAt > config.lostAfter { return .lost }
         if let armedAt, input.time - armedAt > config.armedTimeout { return .timeout }
+
+        // Setup rules only judge a body at setup speeds — a takeaway in progress is
+        // not a framing problem.
+        guard gripSpeed < config.setupMotionMax else {
+            uprightSince = nil
+            walkSince = nil
+            return nil
+        }
+        if !input.checklistGreen { return .checklist }
 
         if input.requirePosture, let spine = input.spineFromVerticalDeg,
            spine < config.uprightSpineMax {

@@ -21,12 +21,20 @@ struct LivePoseSample {
         guard let p = joints[j], (confidence[j] ?? 0) >= c else { return nil }
         return p
     }
-    /// Grip proxy: wrist midpoint, falling back to whichever wrist Vision can see
-    /// (down-the-line hides the far arm at address).
+    /// Grip proxy: confidence-weighted mean of the wrists. Weighted (not midpoint):
+    /// down the line the far wrist hovers around the confidence floor and flaps in
+    /// and out — a hard midpoint↔single-wrist switch injects position jumps that read
+    /// as motion. Weighting makes membership changes nearly continuous.
     var grip: SIMD2<Double>? {
-        let l = point(.wristL, min: 0.15), r = point(.wristR, min: 0.15)
-        if let l, let r { return (l + r) * 0.5 }
-        return l ?? r
+        let l = joints[.wristL], r = joints[.wristR]
+        let cl = confidence[.wristL] ?? 0, cr = confidence[.wristR] ?? 0
+        switch (l, r) {
+        case let (l?, r?) where cl > 0.1 && cr > 0.1:
+            return (l * cl + r * cr) / (cl + cr)
+        case let (l?, _) where cl > 0.1: return l
+        case let (_, r?) where cr > 0.1: return r
+        default: return nil
+        }
     }
 }
 

@@ -69,6 +69,25 @@ final class AnalysisModel {
         let startPosition: SwingPosition = devPos ?? (report.mark(.p1) != nil ? .p1 : .p4)
         select(startPosition, animated: false)
 
+        // Dev hook: ST_AUTOPLAY=1 starts playback after launch (screen-recording runs).
+        if ProcessInfo.processInfo.environment["ST_AUTOPLAY"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                self?.togglePlay()
+            }
+        }
+
+        // The first seek races item readiness — re-seek once the item can render,
+        // so the pane never sits on a blank layer at launch.
+        if let item = player.currentItem {
+            Task { @MainActor [weak self] in
+                while item.status != .readyToPlay {
+                    try? await Task.sleep(nanoseconds: 40_000_000)
+                }
+                guard let self, !self.isPlaying else { return }
+                self.seek(to: self.time)
+            }
+        }
+
         timeObserver = player.addPeriodicTimeObserver(
             forInterval: CMTime(value: 1, timescale: 60), queue: .main
         ) { [weak self] t in
