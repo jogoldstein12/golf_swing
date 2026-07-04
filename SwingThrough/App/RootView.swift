@@ -10,7 +10,9 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SwingRecord.date, order: .reverse) private var swings: [SwingRecord]
 
-    @State private var path: [SwingRecord] = []
+    enum Route: Hashable { case drills }
+
+    @State private var path = NavigationPath()
     @State private var showCapture = false
     @State private var session = SwingSession()
 
@@ -26,6 +28,7 @@ struct RootView: View {
         case "capture": CaptureScreen()
         case "analysis": AnalysisScreen(model: demoAnalysis)
         case "settings": SettingsSheet()
+        case "drills": DrillsScreen()
         case "analyzing": AnalyzingScreen(progress: 0.55, phase: "Measuring plane and sequence")
         default:
             if env["ST_POS"] != nil || env["ST_SCROLL"] != nil {
@@ -40,11 +43,20 @@ struct RootView: View {
         NavigationStack(path: $path) {
             HomeScreen(
                 onRecord: { showCapture = true },
-                onOpen: { path.append($0) }
+                onOpen: { path.append($0) },
+                onDrills: { path.append(Route.drills) }
             )
             .navigationDestination(for: SwingRecord.self) { record in
                 if let model = SwingStore.analysisModel(for: record) {
                     AnalysisScreen(model: model, onBack: { path.removeLast() })
+                        .navigationBarBackButtonHidden(true)
+                        .toolbar(.hidden, for: .navigationBar)
+                }
+            }
+            .navigationDestination(for: Route.self) { route in
+                switch route {
+                case .drills:
+                    DrillsScreen(onBack: { path.removeLast() })
                         .navigationBarBackButtonHidden(true)
                         .toolbar(.hidden, for: .navigationBar)
                 }

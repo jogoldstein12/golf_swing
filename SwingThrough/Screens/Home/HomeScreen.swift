@@ -9,6 +9,7 @@ struct HomeScreen: View {
     @Environment(\.modelContext) private var context
     var onRecord: () -> Void = {}
     var onOpen: (SwingRecord) -> Void = { _ in }
+    var onDrills: () -> Void = {}
 
     var body: some View {
         ZStack {
@@ -28,8 +29,10 @@ struct HomeScreen: View {
                         swingList.padding(.top, swings.count >= 2 ? 28 : 16)
                     }
 
+                    drillsRow.padding(.top, 26)
+
                     PrimaryButton("Record a swing", action: onRecord)
-                        .padding(.top, 32)
+                        .padding(.top, 26)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 22)
@@ -132,6 +135,31 @@ struct HomeScreen: View {
                     .accessibilityIdentifier("swingRow")
             }
         }
+    }
+
+    private var drillsRow: some View {
+        Button(action: onDrills) {
+            VStack(spacing: 0) {
+                Hairline()
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Drill library")
+                            .font(Type.display(19))
+                            .foregroundStyle(Color.ink)
+                        MicroLabel("Keyed to your faults", color: .ink45, size: 9)
+                    }
+                    Spacer()
+                    ChevronGlyph()
+                        .stroke(Color.ink25, style: .init(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+                        .frame(width: 6, height: 11)
+                }
+                .padding(.vertical, 16)
+                Hairline()
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScaleStyle())
+        .accessibilityIdentifier("drills")
     }
 
     private var emptyState: some View {
