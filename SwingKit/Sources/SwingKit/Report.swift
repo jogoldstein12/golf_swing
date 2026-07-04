@@ -101,8 +101,16 @@ public struct KinematicSequence: Codable, Sendable {
     /// Angular-velocity traces for the sequence graph (deg/s), sampled at `times`.
     public var times: [Double]
     public var series: [Segment: [Double]]
-    public init(peaks: [Peak], times: [Double] = [], series: [Segment: [Double]] = [:]) {
+    /// True when the body-orientation stream was untrusted for a substantial share
+    /// of the downswing (Vision's orientation estimate can degrade around the top —
+    /// see docs/VALIDATION.md). Peak ORDER should then not be treated as a fault
+    /// signal; the score treats sequence as neutral. Optional for JSON
+    /// compatibility with older fixtures (absent = confident).
+    public var lowConfidence: Bool?
+    public init(peaks: [Peak], times: [Double] = [], series: [Segment: [Double]] = [:],
+                lowConfidence: Bool? = nil) {
         self.peaks = peaks; self.times = times; self.series = series
+        self.lowConfidence = lowConfidence
     }
 }
 

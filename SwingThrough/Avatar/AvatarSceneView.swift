@@ -252,7 +252,7 @@ struct AvatarSceneView: UIViewRepresentable {
             groundNode?.removeFromParentNode()
             shadowNode?.removeFromParentNode()
 
-            let path = track.gripPath()
+            let path = track.downswingPath()
             var groundRadius = 0.85
             if var fit = track.fittedPlane() {
                 if let angleDeg = planeAngle { fit = track.reangled(fit, toDeg: angleDeg) }
@@ -363,10 +363,14 @@ struct AvatarSceneView: UIViewRepresentable {
         // against the bone canvas without a shader-level fresnel hack.
 
         private func buildLighting(in root: SCNNode) {
+            // A pure-white key + a fairly hot ambient fill were washing the clay's
+            // warm #AA9A7E out toward pale gray. Warming the key slightly and
+            // trimming the ambient contribution lets the material's own warmth read
+            // through in the actual render, not just in the material property.
             let key = SCNLight()
             key.type = .directional
-            key.intensity = 1150
-            key.color = UIColor(white: 1.0, alpha: 1)
+            key.intensity = 1080
+            key.color = UIColor(red: 1, green: 0.965, blue: 0.905, alpha: 1)
             let keyNode = SCNNode()
             keyNode.light = key
             keyNode.simdEulerAngles = SIMD3<Float>(-.pi / 3.3, .pi / 6, 0)
@@ -375,16 +379,19 @@ struct AvatarSceneView: UIViewRepresentable {
             let fill = SCNLight()
             fill.type = .directional
             fill.intensity = 340
-            fill.color = UIColor(red: 1, green: 0.97, blue: 0.9, alpha: 1)
+            fill.color = UIColor(red: 1, green: 0.965, blue: 0.88, alpha: 1)
             let fillNode = SCNNode()
             fillNode.light = fill
             fillNode.simdEulerAngles = SIMD3<Float>(-.pi / 9, -.pi / 2.2, 0)
             root.addChildNode(fillNode)
 
+            // Subtle fresnel-style rim: a warm grazing light that catches the
+            // silhouette edge so the clay separates from the paper card without a
+            // shader-level fresnel term.
             let rim = SCNLight()
             rim.type = .directional
-            rim.intensity = 620
-            rim.color = UIColor(red: 0.98, green: 0.95, blue: 0.85, alpha: 1)
+            rim.intensity = 660
+            rim.color = UIColor(red: 0.99, green: 0.93, blue: 0.8, alpha: 1)
             let rimNode = SCNNode()
             rimNode.light = rim
             rimNode.simdEulerAngles = SIMD3<Float>(-.pi / 8, .pi * 0.94, 0)
@@ -392,8 +399,8 @@ struct AvatarSceneView: UIViewRepresentable {
 
             let ambient = SCNLight()
             ambient.type = .ambient
-            ambient.intensity = 260
-            ambient.color = UIColor(white: 1, alpha: 1)
+            ambient.intensity = 205
+            ambient.color = UIColor(red: 1, green: 0.98, blue: 0.95, alpha: 1)
             let ambientNode = SCNNode()
             ambientNode.light = ambient
             root.addChildNode(ambientNode)

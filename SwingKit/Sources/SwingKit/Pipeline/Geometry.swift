@@ -74,10 +74,9 @@ enum Geometry {
     /// and the reference forward axis. Positive = tipping further forward (toward
     /// `forwardRef`).
     static func bendDeltaDeg(up: SIMD3<Double>, upRef: SIMD3<Double>, forwardRef: SIMD3<Double>) -> Double {
-        // Decompose each `up` vector's tilt away from world-vertical into components
-        // along forwardRef (sagittal) and along rightRef (frontal); bend = sagittal.
+        // Decompose each `up` vector's tilt away from world-vertical into the
+        // component along forwardRef (sagittal); bend = that component's delta.
         let worldUp = SIMD3<Double>(0, 1, 0)
-        let rightRef = normalize(cross(forwardRef, worldUp))
         func sagittalTiltDeg(_ v: SIMD3<Double>) -> Double {
             let vn = normalize(v)
             let f = dot(vn, forwardRef)

@@ -212,20 +212,32 @@ struct AnalysisScreen: View {
     }
 }
 
-/// 3D pane placeholder until the avatar module lands; then it hosts AvatarView.
+/// The 3D pane: the sculpted avatar driven by the same timeline as the video.
 struct AvatarPane: View {
-    let model: AnalysisModel
+    @Bindable var model: AnalysisModel
     var compact: Bool = false
 
     var body: some View {
         ZStack {
             Color.paper
-            VStack(spacing: 10) {
-                MicroLabel("3D avatar", color: .ink25)
-                if !compact {
-                    Text("Sculpting…")
-                        .font(Type.displayItalic(17))
-                        .foregroundStyle(Color.ink25)
+            AvatarView(
+                frames: model.report.frames,
+                time: $model.time,
+                isPlaying: model.isPlaying,
+                showPlane: !compact,
+                showPath: true,
+                orbitEnabled: !compact
+            )
+            if compact {
+                VStack {
+                    Spacer()
+                    HStack {
+                        MicroLabel("3D · From your tracks", color: .ink45, size: 8.5)
+                            .scrimChip()
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 10)
                 }
             }
         }

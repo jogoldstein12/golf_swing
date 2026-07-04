@@ -93,6 +93,25 @@ struct AvatarTrack {
         }
     }
 
+    /// Only the downswing (top of backswing → impact), plus a short exit tail —
+    /// the domain the path *ribbon* should render. Unlike `gripPath()` (which spans
+    /// the full address→impact arc for the plane fit), including the backswing and
+    /// held-address here draws a tangled knot back through the chest; restricting
+    /// to top→impact+tail keeps the ribbon a clean decoration of the business part
+    /// of the swing.
+    func downswingPath(samples: Int = 140, tailSeconds: Double = 0.15) -> [SIMD3<Double>] {
+        guard times.count > 1, samples > 1 else { return [] }
+        let (_, top, impact) = swingArcTriple()
+        let tailEnd = min(impact + tailSeconds, endTime)
+        guard tailEnd > top else { return [] }
+        return (0..<samples).map { i in
+            let t = top + (tailEnd - top) * Double(i) / Double(samples - 1)
+            let p = pose(at: t)
+            if let l = p[.wristL], let r = p[.wristR] { return (l + r) * 0.5 }
+            return p[.wristL] ?? p[.wristR] ?? SIMD3<Double>()
+        }
+    }
+
     /// Infers the address→impact time bounds from the grip-height profile alone
     /// (this track carries no checkpoint times). A recorded clip is longer than
     /// just the swing — it typically holds a static address (often with a small
@@ -108,7 +127,12 @@ struct AvatarTrack {
     /// is still down near its resting height, ahead of the sustained rise/fall
     /// into the backswing and out of the follow-through.
     private func swingArcBounds() -> (start: Double, end: Double) {
-        let fallback = (startTime, endTime)
+        let t = swingArcTriple()
+        return (t.address, t.impact)
+    }
+
+    private func swingArcTriple() -> (address: Double, top: Double, impact: Double) {
+        let fallback = (startTime, startTime, endTime)
         guard times.count > 12 else { return fallback }
         let heights: [Double] = raw.map { sample in
             if let l = sample[.wristL], let r = sample[.wristR] { return (l.y + r.y) * 0.5 }
@@ -148,7 +172,7 @@ struct AvatarTrack {
             break
         }
         guard impactIdx > topIdx, topIdx > addressIdx else { return fallback }
-        return (times[addressIdx], times[impactIdx])
+        return (times[addressIdx], times[topIdx], times[impactIdx])
     }
 
     private static func movingAverage(_ x: [Double], halfWindow: Int) -> [Double] {

@@ -26,37 +26,72 @@ enum AvatarOverlays {
         node.simdOrientation = simd_quatf(from: SIMD3<Float>(0, 1, 0), to: simd_normalize(n))
         node.renderingOrder = -5
         node.castsShadow = false
+
+        // The ~7% fill alone all but vanishes against the bone/paper canvas at a
+        // shallow viewing angle — a thin fairway-deep rim at the disc's true edge
+        // keeps the plane quietly legible as a ground reference without it ever
+        // reading as a solid, distracting disc.
+        let rimGeo = SCNTorus(ringRadius: CGFloat(fit.radius), pipeRadius: CGFloat(max(fit.radius * 0.014, 0.0055)))
+        rimGeo.ringSegmentCount = 96
+        rimGeo.pipeSegmentCount = 12
+        let rimMat = SCNMaterial()
+        rimMat.lightingModel = .constant
+        rimMat.diffuse.contents = UIColor(red: 0x8F / 255, green: 0xB8 / 255, blue: 0x0F / 255, alpha: 0.25)
+        rimMat.isDoubleSided = true
+        rimMat.writesToDepthBuffer = false
+        rimGeo.materials = [rimMat]
+        let rim = SCNNode(geometry: rimGeo)
+        rim.renderingOrder = -4
+        rim.castsShadow = false
+        node.addChildNode(rim)
+
         return node
     }
 
     // MARK: - Grip path ribbon
 
-    /// A tapered tube swept along the hands' full path — thicker near address/impact,
-    /// tapering toward the top of the arc — with a small glow marker at the highest
-    /// point (the top of backswing).
+    /// A slender tapered tube swept along the *downswing only* (top of backswing
+    /// through impact, plus a short exit tail — see `AvatarTrack.downswingPath()`).
+    /// Thin and faint where it starts (top), gaining presence through impact, with
+    /// a small glow marker at the top-of-backswing end. Kept deliberately slight —
+    /// it should decorate the swing, never compete with the figure.
     static func pathNode(points: [SIMD3<Double>]) -> SCNNode {
         let node = SCNNode()
         guard points.count > 3 else { return node }
         let pts = points.map { SIMD3<Float>($0) }
-        let topIdx = pts.indices.max(by: { pts[$0].y < pts[$1].y }) ?? 0
-        let baseRadius: Float = 0.008
+        let n = pts.count
+        let baseRadius: Float = 0.0052
 
-        let geo = tubeGeometry(along: pts, segments: 10) { i in
-            let d = abs(Float(i - topIdx)) / Float(max(pts.count, 1))
-            return baseRadius * (0.62 + 0.85 * min(d * 2.4, 1))
-        }
+        func fraction(_ i: Int) -> Float { Float(i) / Float(max(n - 1, 1)) }
+
+        let geo = tubeGeometry(along: pts, segments: 10, radiusAt: { i in
+            baseRadius * (0.42 + 0.85 * fraction(i))
+        }, colorAt: { i in
+            let f = fraction(i)
+            // Fade in from the start (top of backswing); ease out slightly at the
+            // very tail so the ribbon doesn't just stop dead.
+            let fadeIn = Self.smoothstep(0, 0.55, f)
+            let fadeOut = 1 - Self.smoothstep(0.92, 1, f)
+            let alpha = (0.14 + 0.82 * fadeIn) * fadeOut
+            return SCNVector4(0x8F / 255.0, 0xB8 / 255.0, 0x0F / 255.0, Double(alpha))
+        })
         let mat = SCNMaterial()
         mat.lightingModel = .physicallyBased
-        mat.diffuse.contents = UIColor(red: 0x8F / 255, green: 0xB8 / 255, blue: 0x0F / 255, alpha: 1)
+        mat.diffuse.contents = UIColor.white
         mat.roughness.contents = 0.42
         mat.metalness.contents = 0.08
+        mat.blendMode = .alpha
+        mat.isDoubleSided = true
+        mat.writesToDepthBuffer = false
         geo.materials = [mat]
         node.geometry = geo
+        node.renderingOrder = -1
 
+        let topIdx = pts.indices.max(by: { pts[$0].y < pts[$1].y }) ?? 0
         let tipMat = SCNMaterial()
         tipMat.lightingModel = .constant
-        tipMat.diffuse.contents = UIColor(red: 0xB4 / 255, green: 0xE0 / 255, blue: 0x19 / 255, alpha: 1)
-        let tipGeo = SCNSphere(radius: CGFloat(baseRadius * 3.4))
+        tipMat.diffuse.contents = UIColor(red: 0xB4 / 255, green: 0xE0 / 255, blue: 0x19 / 255, alpha: 0.9)
+        let tipGeo = SCNSphere(radius: CGFloat(baseRadius * 2.6))
         tipGeo.materials = [tipMat]
         let tip = SCNNode(geometry: tipGeo)
         tip.simdPosition = pts[topIdx]
@@ -64,11 +99,17 @@ enum AvatarOverlays {
         return node
     }
 
+    private static func smoothstep(_ lo: Float, _ hi: Float, _ x: Float) -> Float {
+        let t = min(max((x - lo) / max(hi - lo, 1e-6), 0), 1)
+        return t * t * (3 - 2 * t)
+    }
+
     /// Minimal swept-tube mesh: a ring of `segments` points around each path sample,
     /// framed by a stable world-up reference (no twist correction needed — a swing
     /// arc doesn't invert on itself).
     private static func tubeGeometry(along path: [SIMD3<Float>], segments: Int,
-                                      radiusAt: (Int) -> Float) -> SCNGeometry {
+                                      radiusAt: (Int) -> Float,
+                                      colorAt: ((Int) -> SCNVector4)? = nil) -> SCNGeometry {
         let n = path.count
         guard n > 1 else { return SCNGeometry() }
 
@@ -122,11 +163,19 @@ enum AvatarOverlays {
         var normals: [SCNVector3] = []
         vertices.reserveCapacity(n * segments)
         normals.reserveCapacity(n * segments)
+        var colorData = colorAt != nil ? Data(capacity: n * segments * 4 * MemoryLayout<Float>.size) : nil
         for i in 0..<n {
+            let ringColor = colorAt?(i)
             for s in 0..<segments {
                 let p = rings[i][s]
                 vertices.append(SCNVector3(p))
                 normals.append(SCNVector3(simd_normalize(p - path[i])))
+                if let ringColor {
+                    withUnsafeBytes(of: Float(ringColor.x)) { colorData?.append(contentsOf: $0) }
+                    withUnsafeBytes(of: Float(ringColor.y)) { colorData?.append(contentsOf: $0) }
+                    withUnsafeBytes(of: Float(ringColor.z)) { colorData?.append(contentsOf: $0) }
+                    withUnsafeBytes(of: Float(ringColor.w)) { colorData?.append(contentsOf: $0) }
+                }
             }
         }
         var indices: [Int32] = []
@@ -141,8 +190,16 @@ enum AvatarOverlays {
 
         let vSource = SCNGeometrySource(vertices: vertices)
         let nSource = SCNGeometrySource(normals: normals)
+        var sources = [vSource, nSource]
+        if let colorData {
+            let cSource = SCNGeometrySource(data: colorData, semantic: .color, vectorCount: vertices.count,
+                                             usesFloatComponents: true, componentsPerVector: 4,
+                                             bytesPerComponent: MemoryLayout<Float>.size,
+                                             dataOffset: 0, dataStride: MemoryLayout<Float>.size * 4)
+            sources.append(cSource)
+        }
         let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
-        return SCNGeometry(sources: [vSource, nSource], elements: [element])
+        return SCNGeometry(sources: sources, elements: [element])
     }
 
     // MARK: - Ground hairline
@@ -168,7 +225,7 @@ enum AvatarOverlays {
         let size = 256
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size))
         let image = renderer.image { ctx in
-            let colors = [UIColor.black.withAlphaComponent(0.30).cgColor,
+            let colors = [UIColor.black.withAlphaComponent(0.40).cgColor,
                           UIColor.black.withAlphaComponent(0.0).cgColor] as CFArray
             guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
                                              colors: colors, locations: [0, 1]) else { return }

@@ -63,7 +63,12 @@ final class AnalysisModel {
                                  gripY: f.grip2?.y)
         }
 
-        // Dev hook: ST_POS=p4 screenshots a specific checkpoint without UI driving.
+        // Dev hooks: ST_POS=p4 jumps to a checkpoint; ST_PANE=avatar|split picks a pane.
+        switch ProcessInfo.processInfo.environment["ST_PANE"] {
+        case "avatar": pane = .avatar
+        case "split": pane = .split
+        default: break
+        }
         let devPos = ProcessInfo.processInfo.environment["ST_POS"]
             .flatMap { Int($0.dropFirst()) }.flatMap { SwingPosition(rawValue: $0) }
         let startPosition: SwingPosition = devPos ?? (report.mark(.p1) != nil ? .p1 : .p4)

@@ -15,15 +15,15 @@
 import Foundation
 import simd
 
-public enum Smoothing {
-    public struct Options: Sendable {
+enum Smoothing {
+    struct Options: Sendable {
         /// Below this, a joint sample is treated as missing (gap-filled, not trusted).
-        public var confidenceThreshold: Double
-        public var hampelHalfWindow: Int
-        public var hampelK: Double
-        public var sgHalfWindow: Int
-        public init(confidenceThreshold: Double = 0.15, hampelHalfWindow: Int = 2,
-                    hampelK: Double = 3.0, sgHalfWindow: Int = 2) {
+        var confidenceThreshold: Double
+        var hampelHalfWindow: Int
+        var hampelK: Double
+        var sgHalfWindow: Int
+        init(confidenceThreshold: Double = 0.15, hampelHalfWindow: Int = 2,
+             hampelK: Double = 3.0, sgHalfWindow: Int = 2) {
             self.confidenceThreshold = confidenceThreshold
             self.hampelHalfWindow = hampelHalfWindow
             self.hampelK = hampelK
@@ -35,7 +35,7 @@ public enum Smoothing {
     /// independently (each axis is its own scalar series through Filters). A joint
     /// that never clears the confidence threshold anywhere in the clip is left absent
     /// (nil) in every output frame — never fabricated from nothing.
-    public static func smooth(_ frames: [PoseFrame], options: Options = .init()) -> [PoseFrame] {
+    static func smooth(_ frames: [PoseFrame], options: Options = .init()) -> [PoseFrame] {
         guard frames.count > 1 else { return frames }
         var out = frames
         let n = frames.count
@@ -85,7 +85,7 @@ public enum Smoothing {
 
     /// Median sampling interval — used to scale SG derivative kernels (per-sample) to
     /// per-second. Robust to the odd dropped/duplicated frame.
-    public static func medianDT(_ times: [Double]) -> Double {
+    static func medianDT(_ times: [Double]) -> Double {
         guard times.count > 1 else { return 1.0 / 25.0 }
         var diffs = zip(times.dropFirst(), times).map { $0 - $1 }
         diffs.sort()
@@ -94,7 +94,7 @@ public enum Smoothing {
 
     /// Velocity of a scalar series (units of x per second), via the SG derivative
     /// kernel — an analytic derivative of the local quadratic fit, not raw differencing.
-    public static func velocity(_ x: [Double], times: [Double], halfWindow: Int = 2) -> [Double] {
+    static func velocity(_ x: [Double], times: [Double], halfWindow: Int = 2) -> [Double] {
         let dt = medianDT(times)
         guard dt > 0 else { return [Double](repeating: 0, count: x.count) }
         return Filters.savitzkyGolayDerivative(x, halfWindow: halfWindow).map { $0 / dt }

@@ -4,6 +4,7 @@
 // image space, converted here to top-left origin) drive video overlays. Nothing is
 // inferred by a model beyond joint positions — every metric downstream is geometry.
 import AVFoundation
+import CoreImage
 import Foundation
 import Vision
 import simd
@@ -16,8 +17,16 @@ public struct PoseExtractor {
         public var sampleFPS: Double?
         /// Skip 3D (fast pass for swing detection / overlays only).
         public var include3D: Bool
-        public init(window: ClosedRange<Double>? = nil, sampleFPS: Double? = nil, include3D: Bool = true) {
+        /// Scale the pixel buffer by this factor before handing it to Vision (fast 2D
+        /// pass over a whole clip: Vision pose detection is fine well below native
+        /// 2.5K resolution, and shrinking the buffer cuts decode/convert cost, which
+        /// dominates on this Mac without Neural Engine acceleration). nil = native
+        /// resolution.
+        public var downscale: Double?
+        public init(window: ClosedRange<Double>? = nil, sampleFPS: Double? = nil, include3D: Bool = true,
+                    downscale: Double? = nil) {
             self.window = window; self.sampleFPS = sampleFPS; self.include3D = include3D
+            self.downscale = downscale
         }
     }
 
@@ -94,12 +103,18 @@ public struct PoseExtractor {
         var lastSampled = -Double.infinity
         let minStep = options.sampleFPS.map { 1.0 / $0 - 1e-6 } ?? 0
         let windowLength = (options.window.map { $0.upperBound - $0.lowerBound }) ?? duration
+        let ciContext = options.downscale != nil ? CIContext(options: [.useSoftwareRenderer: false]) : nil
 
         while let sample = output.copyNextSampleBuffer() {
-            guard let pixels = CMSampleBufferGetImageBuffer(sample) else { continue }
+            guard var pixels = CMSampleBufferGetImageBuffer(sample) else { continue }
             let t = CMSampleBufferGetPresentationTimeStamp(sample).seconds
             if t - lastSampled < minStep { continue }
             lastSampled = t
+
+            if let factor = options.downscale, let ctx = ciContext,
+               let scaled = Self.downscaled(pixels, factor: factor, context: ctx) {
+                pixels = scaled
+            }
 
             var frame = PoseFrame(time: t)
             let handler = VNImageRequestHandler(cvPixelBuffer: pixels, orientation: orientation)
@@ -146,5 +161,20 @@ public struct PoseExtractor {
         }
         if reader.status == .failed { throw reader.error ?? NSError(domain: "SwingKit", code: 3) }
         return Result(frames: frames, nativeFPS: fps, duration: duration, videoSize: displaySize)
+    }
+
+    /// Renders `pixelBuffer` scaled by `factor` into a freshly-allocated 32BGRA
+    /// pixel buffer via Core Image (cheap relative to the Vision request itself).
+    private static func downscaled(_ pixelBuffer: CVPixelBuffer, factor: Double, context: CIContext) -> CVPixelBuffer? {
+        let w = CVPixelBufferGetWidth(pixelBuffer), h = CVPixelBufferGetHeight(pixelBuffer)
+        let newW = max(2, Int(Double(w) * factor)), newH = max(2, Int(Double(h) * factor))
+        var out: CVPixelBuffer?
+        let attrs: [CFString: Any] = [kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary]
+        CVPixelBufferCreate(kCFAllocatorDefault, newW, newH, kCVPixelFormatType_32BGRA,
+                            attrs as CFDictionary, &out)
+        guard let out else { return nil }
+        let ci = CIImage(cvPixelBuffer: pixelBuffer).transformed(by: CGAffineTransform(scaleX: factor, y: factor))
+        context.render(ci, to: out)
+        return out
     }
 }

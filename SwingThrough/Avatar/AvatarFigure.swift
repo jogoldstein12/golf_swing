@@ -23,10 +23,20 @@ final class AvatarFigureNode {
     private var jointNodes: [Joint: SCNNode] = [:]
 
     private let headNode = SCNNode()
+    private let headShapeNode = SCNNode()
     private let faceNode = SCNNode()
     private let handL = SCNNode()
     private let handR = SCNNode()
     private let handLength: Double = 0.095
+    private let footL = SCNNode()
+    private let footR = SCNNode()
+    private let footLength: Double = 0.15
+    private let footRadius: Double = 0.034
+    // Sculpted torso mass: two oblate "blob" volumes layered over the pelvis→spine
+    // and spine→neck core capsules — pelvis bulk low, ribcage bulk high, with the
+    // core capsule's own (now narrower) radius reading as the waist in between.
+    private let pelvisMass = SCNNode()
+    private let ribMass = SCNNode()
 
     init(isGhost: Bool) {
         bones = Self.boneTable()
@@ -35,20 +45,40 @@ final class AvatarFigureNode {
 
     private static func boneTable() -> [BoneSpec] {
         // (joint, joint, radius in meters) — thick at the pelvis/torso so it reads as
-        // mass, tapering out through the limbs; joint spheres (below) are sized from
-        // the thickest bone they touch so every union looks fused, not stick-figure.
+        // mass, tapering out through the limbs; joint spheres (below) are sized per-
+        // category (see `jointBump`) so extremity joints (elbow/knee/wrist/ankle)
+        // read as smoothing fillets while shoulders/hips/spine stay blended as mass.
+        // The pelvis/spine/neck core radii are deliberately narrower than before —
+        // sculpted bulk there now comes from `pelvisMass`/`ribMass` layered on top,
+        // so the bare core reads as a waist, not a plain wide tube.
         let table: [(Joint, Joint, Double)] = [
             (.ankleL, .kneeL, 0.045), (.kneeL, .hipL, 0.058),
             (.ankleR, .kneeR, 0.045), (.kneeR, .hipR, 0.058),
             (.hipL, .pelvis, 0.068), (.hipR, .pelvis, 0.068), (.hipL, .hipR, 0.06),
-            (.pelvis, .spine, 0.088), (.spine, .neck, 0.074),
+            (.pelvis, .spine, 0.076), (.spine, .neck, 0.062),
             (.neck, .shoulderL, 0.03), (.neck, .shoulderR, 0.03),
             (.shoulderL, .shoulderR, 0.05),
             (.shoulderL, .elbowL, 0.04), (.elbowL, .wristL, 0.032),
             (.shoulderR, .elbowR, 0.04), (.elbowR, .wristR, 0.032),
-            (.neck, .head, 0.03),
+            (.neck, .head, 0.036),
         ]
         return table.map { BoneSpec(a: $0.0, b: $0.1, radius: $0.2) }
+    }
+
+    /// Joint-sphere bump factor, as a fraction of the thickest bone touching that
+    /// joint. Extremity hinge joints (elbow/knee/wrist/ankle) get only a hair more
+    /// than the limb itself — a smoothing fillet, not a feature. Shoulders/hips and
+    /// the spine/neck/pelvis blend a bit more generously since they're carrying
+    /// torso mass, not a hinge.
+    private static func jointBump(_ joint: Joint) -> Double {
+        switch joint {
+        case .elbowL, .elbowR, .kneeL, .kneeR, .wristL, .wristR, .ankleL, .ankleR:
+            return 1.05
+        case .pelvis:
+            return 1.1
+        default:
+            return 1.16
+        }
     }
 
     private func makeMaterial(isGhost: Bool, darker: Bool = false) -> SCNMaterial {
@@ -89,7 +119,7 @@ final class AvatarFigureNode {
             jointRadius[spec.b] = max(jointRadius[spec.b] ?? 0, spec.radius)
         }
         for (joint, rad) in jointRadius {
-            let bump = joint == .pelvis ? 1.14 : 1.16
+            let bump = Self.jointBump(joint)
             let geo = SCNSphere(radius: CGFloat(rad * bump))
             geo.segmentCount = 20
             geo.materials = [mat]
@@ -99,11 +129,16 @@ final class AvatarFigureNode {
             jointNodes[joint] = node
         }
 
+        // Egg-shaped head: the sphere geometry lives on a child node so its y-scale
+        // (the "egg") doesn't also stretch `faceNode`, which stays a plain sibling
+        // at the same front-facing offset used before.
         let headGeo = SCNSphere(radius: 0.1)
         headGeo.segmentCount = 28
         headGeo.materials = [mat]
-        headNode.geometry = headGeo
-        headNode.categoryBitMask = 1
+        headShapeNode.geometry = headGeo
+        headShapeNode.simdScale = SIMD3<Float>(1, 1.12, 1)
+        headShapeNode.categoryBitMask = 1
+        headNode.addChildNode(headShapeNode)
         root.addChildNode(headNode)
 
         let faceMat = makeMaterial(isGhost: isGhost, darker: true)
@@ -120,6 +155,29 @@ final class AvatarFigureNode {
             hand.geometry = geo
             hand.categoryBitMask = 1
             root.addChildNode(hand)
+        }
+
+        for foot in [footL, footR] {
+            let geo = SCNCapsule(capRadius: CGFloat(footRadius), height: 1)
+            geo.radialSegmentCount = 14
+            geo.materials = [mat]
+            foot.geometry = geo
+            foot.categoryBitMask = 1
+            root.addChildNode(foot)
+        }
+
+        // Sculpted torso masses: oblate blobs (spheres squashed flat along the
+        // spine's own length) layered over the pelvis→spine and spine→neck core
+        // capsules — pelvis bulk low, ribcage bulk high, waist reads in between
+        // from the thinner core alone. Positioned/oriented every frame in `apply`.
+        for (node, radiusXZ, radiusY) in [(pelvisMass, 0.1, 0.084), (ribMass, 0.096, 0.078)] {
+            let geo = SCNSphere(radius: 1)
+            geo.segmentCount = 22
+            geo.materials = [mat]
+            node.geometry = geo
+            node.simdScale = SIMD3<Float>(Float(radiusXZ), Float(radiusY), Float(radiusXZ))
+            node.categoryBitMask = 1
+            root.addChildNode(node)
         }
     }
 
@@ -143,6 +201,14 @@ final class AvatarFigureNode {
         }
         placeHand(handL, wrist: pose[.wristL], elbow: pose[.elbowL])
         placeHand(handR, wrist: pose[.wristR], elbow: pose[.elbowR])
+        placeFoot(footL, ankle: pose[.ankleL])
+        placeFoot(footR, ankle: pose[.ankleR])
+        if let pelvis = pose[.pelvis], let spine = pose[.spine] {
+            placeMass(pelvisMass, from: pelvis, to: spine, fraction: 0.32)
+        }
+        if let spine = pose[.spine], let neck = pose[.neck] {
+            placeMass(ribMass, from: spine, to: neck, fraction: 0.58)
+        }
     }
 
     private func place(_ node: SCNNode, from a: SIMD3<Double>, to b: SIMD3<Double>) {
@@ -161,6 +227,34 @@ final class AvatarFigureNode {
         let dir = simd_normalize(wrist - elbow)
         let tip = wrist + dir * handLength
         place(node, from: wrist, to: tip)
+    }
+
+    /// A stylized foot: a short capsule from the tracked ankle forward to a toe
+    /// that's clamped to (near) the ground plane. Vision carries no foot/toe joint,
+    /// and the body-local pose space (see AvatarTrack's coordinate note) can leave
+    /// one ankle sitting a few centimeters above the other even in a level, planted
+    /// stance — clamping the toe, not the ankle, plants both feet convincingly on
+    /// the ground reference without touching the tracked leg's own bone lengths.
+    private func placeFoot(_ node: SCNNode, ankle: SIMD3<Double>?) {
+        guard let ankle else { return }
+        let forward = SIMD3<Double>(0, 0, 1)
+        var toe = ankle + forward * footLength
+        toe.y = min(ankle.y, 0.006)
+        place(node, from: ankle, to: toe)
+    }
+
+    /// Positions/orients a fixed-shape oblate "mass" node at a fraction along a
+    /// joint-to-joint segment, its short (squashed) axis kept aligned with the
+    /// segment direction so it reads as a cross-sectional bulge, not a stray ball.
+    /// Scale is set once at build time and never touched here.
+    private func placeMass(_ node: SCNNode, from a: SIMD3<Double>, to b: SIMD3<Double>, fraction: Double) {
+        let af = SIMD3<Float>(a), bf = SIMD3<Float>(b)
+        let d = bf - af
+        let len = simd_length(d)
+        guard len > 0.0004 else { node.isHidden = true; return }
+        node.isHidden = false
+        node.simdPosition = af + d * Float(fraction)
+        node.simdOrientation = simd_quatf(from: SIMD3<Float>(0, 1, 0), to: d / len)
     }
 
     /// A twist-consistent basis for the head: `up` follows the real neck→topHead
