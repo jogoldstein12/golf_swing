@@ -96,3 +96,7 @@ The app and the validator can never drift apart.
   frame timestamps, not wall clock, are the truth.
 - **Vision at 2.5K is slow (~150 ms/frame both requests)** — fast 2D pass runs
   downscaled, 3D only on the detected swing window.
+- **Vision body-pose cannot initialize in the iOS Simulator** ("Unable to setup request
+  in VNDetectHumanBodyPoseRequest") — the sim runtime lacks the inference backend. The
+  pipeline runs on macOS (swingctl) and on real devices; the Simulator demo path uses
+  the pre-analyzed fixture report. ST_RUN_SAMPLE end-to-end smoke is device-only.
