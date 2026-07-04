@@ -8,7 +8,13 @@ import Foundation
 import SwingKit
 
 enum DemoData {
-    static func load() -> (report: SwingReport, videoURL: URL, videoSize: CGSize) {
+    /// Decoding the fixture (0.5MB of tracks) is not free — cache it so opening the
+    /// sample swing never re-parses on the main thread.
+    private static let cached: (report: SwingReport, videoURL: URL, videoSize: CGSize) = compute()
+
+    static func load() -> (report: SwingReport, videoURL: URL, videoSize: CGSize) { cached }
+
+    private static func compute() -> (report: SwingReport, videoURL: URL, videoSize: CGSize) {
         guard let videoURL = Bundle.main.url(forResource: "sample_dtl", withExtension: "mp4") else {
             fatalError("fixture video missing from bundle")
         }

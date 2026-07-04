@@ -24,7 +24,8 @@ final class DriveTests: XCTestCase {
 
         // Open the sample swing
         app.staticTexts["Today"].firstMatch.tap()
-        sleep(3)
+        XCTAssertTrue(app.staticTexts["Top"].waitForExistence(timeout: 15))
+        sleep(2)
 
         // Checkpoints
         for label in ["Top", "Impact", "Follow", "Address"] {

@@ -23,8 +23,12 @@ func opt(_ name: String) -> String? {
 }
 
 let args = CommandLine.arguments
+if args.count >= 2, args[1] == "coach" {
+    runCoach(Array(args.dropFirst(2)))
+}
 guard args.count >= 3, args[1] == "extract" else {
     print("usage: swingctl extract <video> [--start s --end s] [--fps n] [--no3d] [--json out] [--annotate dir --every n]")
+    print("       swingctl coach <report.json> [--skill level] [--claude] [--write]")
     exit(64)
 }
 let videoURL = URL(fileURLWithPath: args[2])
