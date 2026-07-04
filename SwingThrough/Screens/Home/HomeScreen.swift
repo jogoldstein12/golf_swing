@@ -39,14 +39,24 @@ struct HomeScreen: View {
         .onAppear(perform: seedSampleIfEmpty)
     }
 
+    @State private var showSettings = false
+
     private var header: some View {
         HStack {
             Text("Swing Through")
                 .font(Type.display(23))
                 .foregroundStyle(Color.ink)
             Spacer()
-            Circle().fill(Color.ink).frame(width: 26, height: 26)
+            Button {
+                showSettings = true
+            } label: {
+                Circle().fill(Color.ink).frame(width: 26, height: 26)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(PressScaleStyle())
+            .accessibilityIdentifier("settings")
         }
+        .sheet(isPresented: $showSettings) { SettingsSheet() }
     }
 
     private var heading: some View {

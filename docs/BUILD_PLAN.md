@@ -76,3 +76,23 @@ The app and the validator can never drift apart.
 5. Capture (guides, live pose cues, auto-detect, countdown, two-angle fusion)
 6. Coaching (Claude API + rule fallback) + Goals UI
 7. History, drills, icon, polish; frame-level UI verification; VALIDATION.md
+
+## Gotchas discovered (so nobody re-learns them)
+
+- **SwiftUI `.frame(width:height:)` centers oversized children.** An inner view taller
+  than the frame gets silently centered, adding a hidden offset — pass
+  `alignment: .topLeading` (this cost us the first video-crop debugging round).
+- **`colorEffect` blanks UIKit-backed views** (ScrollView, player layers). Grain goes on
+  the canvas color layer only.
+- **Derived data must live outside `~/Documents`** — iCloud fileprovider xattrs make
+  codesign reject the bundle ("resource fork … not allowed"). All build scripts use
+  `~/Library/Caches/*-dd`.
+- **Never re-create a view hosting AVPlayerLayer** — re-attachment flashes blank.
+  Panes resize one persistent player view instead of swapping instances.
+- **XCUITest**: SwiftUI `Text` inside `Button` is exposed as the button's *label*, not a
+  `staticText`; query `app.buttons[...]` or set accessibility identifiers. Never assert
+  on date-relative labels ("Today") — they roll over at midnight mid-run.
+- **simctl env vars** need the `SIMCTL_CHILD_` prefix; `recordVideo` writes VFR video —
+  frame timestamps, not wall clock, are the truth.
+- **Vision at 2.5K is slow (~150 ms/frame both requests)** — fast 2D pass runs
+  downscaled, 3D only on the detected swing window.
