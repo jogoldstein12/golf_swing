@@ -119,6 +119,7 @@ struct HomeScreen: View {
                 if i > 0 { Hairline() }
                 Button { onOpen(s) } label: { SwingRow(record: s) }
                     .buttonStyle(PressScaleStyle())
+                    .accessibilityIdentifier("swingRow")
             }
         }
     }

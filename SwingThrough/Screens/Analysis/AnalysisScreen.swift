@@ -137,24 +137,29 @@ struct AnalysisScreen: View {
         .floatShadow()
     }
 
-    @ViewBuilder
+    // One persistent video view + one avatar pane, resized between modes — never
+    // recreated, so pane switches glide with no blank player flash.
+    private var videoHeight: CGFloat {
+        switch model.pane { case .video: 400; case .split: 224; case .avatar: 0 }
+    }
+    private var avatarHeight: CGFloat {
+        switch model.pane { case .avatar: 400; case .split: 176; case .video: 0 }
+    }
+
     private var panes: some View {
-        switch model.pane {
-        case .video:
+        VStack(spacing: 0) {
             VideoAnalysisView(model: model)
-                .frame(height: 400)
-        case .avatar:
-            AvatarPane(model: model)
-                .frame(height: 400)
-        case .split:
-            VStack(spacing: 0) {
-                VideoAnalysisView(model: model)
-                    .frame(height: 224)
-                Hairline()
-                AvatarPane(model: model, compact: true)
-                    .frame(height: 176)
-            }
+                .frame(height: videoHeight)
+                .clipped()
+                .opacity(videoHeight > 0 ? 1 : 0)
+            Hairline()
+                .opacity(model.pane == .split ? 1 : 0)
+            AvatarPane(model: model, compact: model.pane == .split)
+                .frame(height: avatarHeight)
+                .clipped()
+                .opacity(avatarHeight > 0 ? 1 : 0)
         }
+        .animation(.spring(response: 0.45, dampingFraction: 0.88), value: model.pane)
     }
 
     private var paneChrome: some View {
