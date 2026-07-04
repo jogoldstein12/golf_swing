@@ -249,6 +249,8 @@ final class CaptureController: ObservableObject {
 
     func accept(onCaptured: (URL, CaptureView) -> Void) {
         guard case .review(let take) = screen else { return }
+        NSLog("CaptureController: accepted %@ (%@, %.0f fps, %.1fs)",
+              take.url.lastPathComponent, take.view.rawValue, take.fps, take.duration)
         onCaptured(take.url, take.view)
         withAnimation(.spring(response: 0.5, dampingFraction: 0.88)) {
             screen = .live

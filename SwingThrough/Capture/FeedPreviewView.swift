@@ -35,19 +35,13 @@ final class PreviewSink {
         let renderer = layer.sampleBufferRenderer
         if renderer.status == .failed { renderer.flush() }
         renderer.enqueue(sample)
-        count += 1
         if renderer.status == .failed, !loggedFailure {
             loggedFailure = true
             NSLog("PreviewSink: renderer failed (%@)",
                   renderer.error?.localizedDescription ?? "unknown")
         }
-        if count % 200 == 1 {
-            NSLog("PreviewSink: enqueued %d status %d ready %d", count,
-                  renderer.status.rawValue, renderer.isReadyForMoreMediaData ? 1 : 0)
-        }
     }
     private var loggedFailure = false
-    private var count = 0
 }
 
 struct FeedPreviewView: UIViewRepresentable {

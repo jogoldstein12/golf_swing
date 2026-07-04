@@ -2,21 +2,22 @@
 // grip track:
 //
 //   idle ──(checklist green + still address ≥1.0s)──▶ ready (armed)
-//   ready ──(grip speed ≥ 0.9 u/s, 2 consecutive samples)──▶ capturing   [trigger]
+//   ready ──(grip ≥1.0 u/s once, or ≥0.7 twice running)──▶ capturing     [trigger]
 //   capturing ──(speed < 0.30 u/s)──▶ settling
 //   settling ──(quiet holds 1.5s)──▶ captured        (spike → back to capturing)
 //   ready ──(posture stands up · walks off · checklist breaks · 45s timeout)──▶ idle
 //
-// Units are image fractions per second on the median-filtered grip point (wrist
-// midpoint). Thresholds were tuned against the bundled DTL fixture: address noise
-// < 0.12 u/s, takeaway 0.2–0.7, downswing > 2, follow-through decay < 0.3 by half a
-// second after impact. The 3-sample median kills Vision's single-frame glitches
-// (observed 1.2–2.0 u/s spikes mid-address); the two-consecutive-samples trigger rule
-// survives the position jump when a looping file feed wraps.
+// Units are image fractions per second on the median-filtered, confidence-weighted
+// grip point. Thresholds were tuned against the bundled DTL fixture through the real
+// pipeline (~12.5Hz effective, EMA-smoothed): address noise < 0.1 u/s, waggle-scale
+// motion < 0.45, backswing 0.2–0.75, downswing ≥ 1.19. The 3-sample median kills
+// Vision's single-frame glitches, and a looping feed's wrap never enters the speed
+// trace (the source-clock jump resets the filter first).
 //
 // Recording contract: the take starts retaining media at stillness onset (so the file
-// always holds the address), and `captured` reports the exact trim — pre-roll 1.5s
-// before the trigger through 1.0s into the settle.
+// always holds the address), and `captured` reports the exact trim — the earlier of
+// 1.5s before the trigger or 1.0s before the takeaway's motion run began, through
+// 1.0s into the settle. A slow backswing must not push the address out of the file.
 import Foundation
 import simd
 
@@ -48,21 +49,34 @@ final class SwingDetector {
     struct Config {
         var stillSpeed = 0.12         // u/s — "holding address"
         var armHold = 1.0             // s of stillness to arm
-        var triggerSpeed = 0.9        // u/s, must hold for `triggerSamples`
+        /// Trigger is two-tier: one sample at the high bar (a downswing is unmistakable
+        /// even through the EMA), or two consecutive at the low bar (sustained swing
+        /// motion). Waggles top out ~0.45; the fixture's slow backswing ~0.75.
+        var triggerHigh = 1.0         // u/s, single sample
+        var triggerSpeed = 0.7        // u/s, must hold for `triggerSamples`
         var triggerSamples = 2
         var settleSpeed = 0.30        // u/s — swing energy gone
         var settleHold = 1.5          // s under settleSpeed to finish
         var preRoll = 1.5             // s kept before the trigger
+        /// Seconds of held address kept before the swing's motion run began. The trim
+        /// takes whichever reaches further back, `preRoll` before the trigger or this
+        /// before the takeaway — a slow backswing must not push the address out of
+        /// the file.
+        var addressLead = 1.0
         var settleTail = 1.0          // s of the settle kept after the swing
         var uprightSpineMax = 20.0    // deg from vertical; below = standing, not addressing
         var postureHold = 0.5         // s standing-straight before disarm (DTL only)
         var walkSpeed = 0.18          // u/s of hip center-x = walking through frame
         var walkHold = 0.4
-        /// Setup-scale motion ceiling: posture/walk/checklist disarms apply only below
-        /// this grip speed. Above it something swing-like is happening — stay armed and
-        /// let the trigger or the quiet decide. (A takeaway runs 0.2–0.7 u/s; without
-        /// this gate the moving arms would read as a framing problem mid-swing.)
-        var setupMotionMax = 0.45
+        /// Setup rules (posture / walk-off / checklist) only judge a body at sustained
+        /// rest: grip under `restSpeed` for at least `restHold`. A backswing dips slow
+        /// at the top — instantaneous speed gating would re-arm the setup rules
+        /// mid-swing and a flapping chip would kill the capture.
+        var restSpeed = 0.18
+        var restHold = 0.35
+        /// Chaos override: checklist red this long disarms even without rest
+        /// (someone walked into frame and stayed there, light died, etc.).
+        var checklistRedMax = 2.5
         var lostAfter = 0.6           // s without a grip point in ready → disarm
         var armedTimeout = 45.0       // s armed with no swing → recycle the take
         var maxCapture = 12.0         // s hard stop on a runaway capture
@@ -95,21 +109,31 @@ final class SwingDetector {
     private var armedAt: Double?
     private var fastStreak = 0
     private var triggerSource: Double?
+    /// Source time where the current motion run began (ready state only) — the
+    /// takeaway, if a trigger follows. A run only ends after sustained quiet
+    /// (`runQuietReset`): the club pausing at the top of a slow backswing is part of
+    /// the swing, not a re-address.
+    private var runStartSource: Double?
+    private var runLowSince: Double?
+    private let runQuietReset = 0.4
     private var captureStart: Double?
     private var settleSince: (t: Double, source: Double)?
     private var uprightSince: Double?
     private var walkSince: Double?
+    private var quietSince: Double?
+    private var checklistRedSince: Double?
     private var gripSeenAt = -Double.infinity
     private var centerX: (t: Double, x: Double, v: Double)?
-    private var manual = false
 
     func reset() {
         phase = .idle(hold: 0)
         gripWindow = []; lastFiltered = nil; lastSourceTime = -.infinity
         stillSince = nil; recordArmed = false; armedAt = nil
-        fastStreak = 0; triggerSource = nil; captureStart = nil; settleSince = nil
-        uprightSince = nil; walkSince = nil; gripSeenAt = -.infinity
-        centerX = nil; manual = false; gripSpeed = 0
+        fastStreak = 0; triggerSource = nil; runStartSource = nil; runLowSince = nil
+        captureStart = nil; settleSince = nil
+        uprightSince = nil; walkSince = nil; quietSince = nil
+        checklistRedSince = nil; gripSeenAt = -.infinity
+        centerX = nil; gripSpeed = 0
     }
 
     /// Manual fallback (countdown record): jump straight to capturing. The trim starts
@@ -117,7 +141,6 @@ final class SwingDetector {
     /// the guardrail. Caller must have issued beginTake.
     func beginManualCapture(input: Input) -> [Event] {
         reset()
-        manual = true
         recordArmed = true
         triggerSource = input.sourceTime + config.preRoll   // trimFrom = sourceTime
         captureStart = input.time
@@ -228,10 +251,22 @@ final class SwingDetector {
     }
 
     private func stepReady(_ input: Input) -> [Event] {
+        // Track when the current motion run started — that's the takeaway if this
+        // run turns out to be the swing.
+        if gripSpeed >= config.stillSpeed {
+            runLowSince = nil
+            runStartSource = runStartSource ?? input.sourceTime
+        } else {
+            runLowSince = runLowSince ?? input.time
+            if input.time - runLowSince! >= runQuietReset {
+                runStartSource = nil
+            }
+        }
+
         // Trigger first: a swing beats every disarm rule.
         if gripSpeed >= config.triggerSpeed {
             fastStreak += 1
-            if fastStreak >= config.triggerSamples {
+            if gripSpeed >= config.triggerHigh || fastStreak >= config.triggerSamples {
                 triggerSource = input.sourceTime
                 captureStart = input.time
                 settleSince = nil
@@ -256,14 +291,27 @@ final class SwingDetector {
         if input.time - gripSeenAt > config.lostAfter { return .lost }
         if let armedAt, input.time - armedAt > config.armedTimeout { return .timeout }
 
-        // Setup rules only judge a body at setup speeds — a takeaway in progress is
-        // not a framing problem.
-        guard gripSpeed < config.setupMotionMax else {
+        if gripSpeed < config.restSpeed {
+            quietSince = quietSince ?? input.time
+        } else {
+            quietSince = nil
+        }
+        checklistRedSince = input.checklistGreen ? nil
+            : (checklistRedSince ?? input.time)
+
+        // Chaos override — a long-red checklist disarms even mid-motion.
+        if let red = checklistRedSince,
+           input.time - red >= config.checklistRedMax { return .checklist }
+
+        // Everything else only judges a body at sustained rest; a swing in progress
+        // is not a framing problem.
+        guard let quiet = quietSince,
+              input.time - quiet >= config.restHold else {
             uprightSince = nil
             walkSince = nil
             return nil
         }
-        if !input.checklistGreen { return .checklist }
+        if checklistRedSince != nil { return .checklist }
 
         if input.requirePosture, let spine = input.spineFromVerticalDeg,
            spine < config.uprightSpineMax {
@@ -313,10 +361,12 @@ final class SwingDetector {
 
     private func finish(at input: Input) -> [Event] {
         let trigger = triggerSource ?? input.sourceTime
+        let takeaway = runStartSource ?? trigger
         let settleStart = settleSince?.source ?? input.sourceTime
         phase = .captured
         recordArmed = false
-        return [.captured(trimFrom: trigger - config.preRoll,
+        return [.captured(trimFrom: min(trigger - config.preRoll,
+                                        takeaway - config.addressLead),
                           trimTo: settleStart + config.settleTail)]
     }
 }

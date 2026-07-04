@@ -49,8 +49,52 @@ struct CaptureScreen: View {
         .sheet(isPresented: $showSetupSheet) {
             SetupSheet(angle: controller.angle)
         }
-        .onAppear { controller.start() }
+        .onAppear {
+            controller.start()
+            runDemoScript()
+        }
         .onDisappear { controller.stopFeed() }
+    }
+
+    /// Dev harness only: ST_DEMO="delay:action,delay:action,…" drives the interactive
+    /// paths sequentially (the CI/Simulator loop has no way to tap the screen).
+    /// Actions: faceon · dtl · help · helpclose · countdown · retake · accept.
+    /// retake/accept first wait until a review card is actually showing.
+    private func runDemoScript() {
+        guard let script = ProcessInfo.processInfo.environment["ST_DEMO"],
+              !script.isEmpty else { return }
+        let steps: [(Double, String)] = script.split(separator: ",").compactMap {
+            let bits = $0.split(separator: ":")
+            guard bits.count == 2, let d = Double(bits[0]) else { return nil }
+            return (d, String(bits[1]))
+        }
+        Task { @MainActor in
+            for (delay, action) in steps {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                switch action {
+                case "faceon": controller.setAngle(.faceOn)
+                case "dtl": controller.setAngle(.downTheLine)
+                case "help": showSetupSheet = true
+                case "helpclose": showSetupSheet = false
+                case "countdown": controller.beginCountdown()
+                case "retake":
+                    await waitForReview()
+                    controller.retake()
+                case "accept":
+                    await waitForReview()
+                    controller.accept(onCaptured: onCaptured)
+                default: break
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func waitForReview() async {
+        while true {
+            if case .review = controller.screen { return }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
     }
 
     private var startingState: some View {
