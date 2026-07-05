@@ -14,6 +14,8 @@ struct CaptureScreen: View {
 
     @StateObject private var controller = CaptureController()
     @State private var showSetupSheet = false
+    @State private var showOnboarding = false
+    @AppStorage(CaptureOnboarding.hasSeenDefaultsKey) private var hasSeenOnboarding = false
 
     init(onCancel: @escaping () -> Void = {},
          onCaptured: @escaping (URL, CaptureView) -> Void = { _, _ in }) {
@@ -51,6 +53,19 @@ struct CaptureScreen: View {
         }
         .sheet(isPresented: $showSetupSheet) {
             SetupSheet(angle: controller.angle)
+        }
+        .sheet(isPresented: $showOnboarding, onDismiss: { hasSeenOnboarding = true }) {
+            CaptureOnboarding(controller: controller)
+        }
+        .onChange(of: controller.screen) { _, screen in
+            // First live appearance only: the walkthrough is driven by the live checklist,
+            // so it waits until the feed is actually running. Suppressed under the scripted
+            // ST_DEMO harness, whose taps drive their own sheets and would collide.
+            if case .live = screen,
+               ProcessInfo.processInfo.environment["ST_DEMO"] == nil,
+               CaptureOnboarding.shouldPresent(hasSeenOnboarding: hasSeenOnboarding) {
+                showOnboarding = true
+            }
         }
         .onAppear {
             controller.start()
@@ -333,6 +348,10 @@ struct CaptureScreen: View {
                     MicroLabel("\(Int(take.fps.rounded())) fps", color: .ink70)
                     MicroLabel("·", color: .ink25)
                     MicroLabel(String(format: "%.1f s", take.duration), color: .ink70)
+                    if let resolution = resolutionLabel(for: take) {
+                        MicroLabel("·", color: .ink25)
+                        MicroLabel(resolution, color: .ink70)
+                    }
                 }
                 PrimaryButton("Analyze swing") {
                     controller.accept(onCaptured: onCaptured)
@@ -352,6 +371,14 @@ struct CaptureScreen: View {
             .padding(.bottom, 10)
             .padding(.horizontal, 24)
         }
+    }
+
+    /// Achieved vertical resolution, e.g. "1080p" — the shorter axis of the portrait
+    /// capture. Nil when dimensions weren't recorded (legacy/placeholder takes).
+    private func resolutionLabel(for take: CaptureTake) -> String? {
+        let shortAxis = min(take.width, take.height)
+        guard shortAxis > 0 else { return nil }
+        return "\(Int(shortAxis.rounded()))p"
     }
 
     private func openSettings() {

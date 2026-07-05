@@ -15,6 +15,11 @@ struct CaptureTake: Equatable {
     let view: CaptureView
     let fps: Double
     let duration: Double
+    /// Achieved capture dimensions (portrait, orientation applied) — what the camera
+    /// actually recorded, read back from FeedInfo, not a nominal request. Analysis
+    /// re-measures the file downstream; this records the capture side's own truth.
+    let width: Double
+    let height: Double
 }
 
 @MainActor
@@ -46,6 +51,7 @@ final class CaptureController: ObservableObject {
     private let motion = MotionService()
     private var evaluator = ChecklistEvaluator()
     private let detector = SwingDetector()
+    private let cues = CaptureCues()
     private var cueExpiry: Date?
     private var countdownTask: Task<Void, Never>?
     private var exportTask: Task<Void, Never>?
@@ -216,12 +222,15 @@ final class CaptureController: ObservableObject {
             feed?.cancelTake()
         case .armed:
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+            cues.armed()
         case .triggered:
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            cues.recordingStarted()
         case .disarmed(let reason):
             transientCue(for: reason)
         case .captured(let from, let to):
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+            cues.swingCaptured()
             finishCapture(trimFrom: from, trimTo: to)
         }
     }
@@ -234,6 +243,9 @@ final class CaptureController: ObservableObject {
         let generation = exportGeneration
         let takeAngle = angle
         let fps = feed.info.fps
+        // Achieved capture dimensions from the feed — the size the camera actually
+        // locked, not a requested nominal. Carried onto the take alongside fps.
+        let size = feed.info.size
         exportTask = Task {
             do {
                 let url = try await feed.finishTake(fromSource: trimFrom, toSource: trimTo)
@@ -244,7 +256,9 @@ final class CaptureController: ObservableObject {
                 let duration = (try? await AVURLAsset(url: url).load(.duration).seconds)
                     ?? (trimTo - trimFrom)
                 let take = CaptureTake(url: url, view: takeAngle,
-                                       fps: fps, duration: duration)
+                                       fps: fps, duration: duration,
+                                       width: Double(size.width),
+                                       height: Double(size.height))
                 self.exportTask = nil
                 self.exporting = false
                 withAnimation(.spring(response: 0.55, dampingFraction: 0.86)) {
@@ -305,6 +319,7 @@ final class CaptureController: ObservableObject {
         countdownTask = Task {
             for n in [3, 2, 1] {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                self.cues.speak(CaptureCues.countdownWord(n))
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     self.countdown = n
                 }

@@ -16,6 +16,14 @@ final class CameraFeed: NSObject, CaptureFeed, AVCaptureVideoDataOutputSampleBuf
     var onFrame: ((FeedFrame) -> Void)?
     private(set) var info = FeedInfo()
 
+    /// Stable capture profile: 1080p-class at a locked 60 fps. 60 is the deliberate
+    /// default — steady frame spacing for downstream tempo math, without the Vision
+    /// latency and file bloat of 4K/120. Bump `targetFPS` to 120 only when a feature
+    /// actually needs it (none does today); until then a stable 60 beats a variable high
+    /// rate. If the device can't reach 60 in this class, we lock its true best and report
+    /// that honestly in the take metadata — never a pretended number.
+    private static let targetFPS: Double = 60
+
     private let session = AVCaptureSession()
     private let output = AVCaptureVideoDataOutput()
     private let sessionQueue = DispatchQueue(label: "st.camera.session")
@@ -91,7 +99,7 @@ final class CameraFeed: NSObject, CaptureFeed, AVCaptureVideoDataOutputSampleBuf
         }
         var fps = 30.0
         if let best {
-            let target = best.fps >= 60 ? 60 : best.fps
+            let target = min(best.fps, Self.targetFPS)
             do {
                 try device.lockForConfiguration()
                 device.activeFormat = best.format
