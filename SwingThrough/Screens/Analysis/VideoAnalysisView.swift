@@ -47,13 +47,13 @@ private struct PlayerLayerView: UIViewRepresentable {
 
     final class LayerHost: UIView {
         override static var layerClass: AnyClass { AVPlayerLayer.self }
-        var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+        var playerLayer: AVPlayerLayer? { layer as? AVPlayerLayer }
     }
 
     func makeUIView(context: Context) -> LayerHost {
         let v = LayerHost()
-        v.playerLayer.player = player
-        v.playerLayer.videoGravity = .resize   // geometry is controlled by the frame we give it
+        v.playerLayer?.player = player
+        v.playerLayer?.videoGravity = .resize   // geometry is controlled by the frame we give it
         return v
     }
     func updateUIView(_ v: LayerHost, context: Context) {}

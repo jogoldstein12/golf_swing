@@ -5,14 +5,15 @@ import AVFoundation
 import CoreGraphics
 
 enum FrameImage {
-    static func cgImage(from url: URL, at time: Double) throws -> CGImage {
+    static func cgImage(from url: URL, at time: Double) async throws -> CGImage {
         let asset = AVURLAsset(url: url)
         let gen = AVAssetImageGenerator(asset: asset)
         gen.appliesPreferredTrackTransform = true
         gen.requestedTimeToleranceBefore = .zero
         gen.requestedTimeToleranceAfter = .zero
         let cmTime = CMTime(seconds: time, preferredTimescale: 600)
-        return try gen.copyCGImage(at: cmTime, actualTime: nil)
+        let (image, _) = try await gen.image(at: cmTime)
+        return image
     }
 
     /// Row-major 8-bit grayscale buffer of the image, top row first (matches our

@@ -41,7 +41,7 @@ public enum SwingAnalyzer {
         progress?(0.85)
 
         // 5. Swing plane (down-the-line only; empty/neutral for face-on).
-        let plane = SwingPlaneAnalyzer.analyze(frames: smoothed, timing: timing, view: view, videoURL: url)
+        let plane = await SwingPlaneAnalyzer.analyze(frames: smoothed, timing: timing, view: view, videoURL: url)
         progress?(0.90)
 
         // 6. 6DOF, 7. kinematic sequence.

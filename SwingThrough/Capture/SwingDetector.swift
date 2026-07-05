@@ -230,7 +230,7 @@ final class SwingDetector {
                     events.append(.recordStart)
                 }
             }
-            let hold = (input.time - stillSince!) / config.armHold
+            let hold = (input.time - (stillSince ?? input.time)) / config.armHold
             if hold >= 1 {
                 phase = .ready
                 armedAt = input.time

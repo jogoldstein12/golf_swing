@@ -82,6 +82,8 @@ struct AnalyzingScreen: View {
     }
 }
 
-#Preview {
-    AnalyzingScreen(progress: 0.4, phase: "Measuring the plane")
+private struct AnalyzingScreen_Previews: PreviewProvider {
+    static var previews: some View {
+        AnalyzingScreen(progress: 0.4, phase: "Measuring the plane")
+    }
 }

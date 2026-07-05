@@ -35,7 +35,7 @@ struct DrillsScreen: View {
     private var prescribed: [String: String] {
         guard let latest = swings.first else { return [:] }
         let report = latest.isSample
-            ? DemoData.load().report
+            ? DemoData.load()?.report
             : SwingStore.loadReport(named: latest.reportFileName)
         guard let goals = report?.coaching?.goals else { return [:] }
         return Dictionary(goals.map { ($0.drill, $0.title) }, uniquingKeysWith: { a, _ in a })

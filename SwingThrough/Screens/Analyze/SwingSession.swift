@@ -48,6 +48,7 @@ final class SwingSession {
                 reportFileName: reportName, videoFileName: videoName
             )
             context.insert(record)
+            try context.save()
             phase = .idle
             return record
         } catch {

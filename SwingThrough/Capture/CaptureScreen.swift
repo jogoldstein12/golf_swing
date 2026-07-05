@@ -8,12 +8,16 @@ import SwiftUI
 import SwingKit
 
 struct CaptureScreen: View {
+    @Environment(\.scenePhase) private var scenePhase
+    var onCancel: () -> Void = {}
     var onCaptured: (URL, CaptureView) -> Void = { _, _ in }
 
     @StateObject private var controller = CaptureController()
     @State private var showSetupSheet = false
 
-    init(onCaptured: @escaping (URL, CaptureView) -> Void = { _, _ in }) {
+    init(onCancel: @escaping () -> Void = {},
+         onCaptured: @escaping (URL, CaptureView) -> Void = { _, _ in }) {
+        self.onCancel = onCancel
         self.onCaptured = onCaptured
     }
 
@@ -38,12 +42,11 @@ struct CaptureScreen: View {
                     action: openSettings)
             case .unavailable(let why):
                 EmptyFeedState(
-                    headline: "No camera here.",
-                    body: "This device has no camera feed. On the Simulator, launch "
-                        + "with ST_FEED=file to drive capture from the bundled swing. "
-                        + "(\(why))",
-                    actionTitle: nil,
-                    action: {})
+                    headline: "The camera isn't available.",
+                    body: "Swing Through could not start a camera feed. You can retry, "
+                        + "or import a video from the home screen. (\(why))",
+                    actionTitle: "Retry camera",
+                    action: controller.restart)
             }
         }
         .sheet(isPresented: $showSetupSheet) {
@@ -54,6 +57,16 @@ struct CaptureScreen: View {
             runDemoScript()
         }
         .onDisappear { controller.stopFeed() }
+        .onChange(of: scenePhase) { _, phase in
+            // Returning from Settings after granting camera access should recover
+            // without requiring the user to dismiss and reopen capture.
+            if phase == .active, case .denied = controller.screen {
+                controller.restart()
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if showsFloatingClose { closeButton.padding(.trailing, 24).padding(.top, 8) }
+        }
     }
 
     /// Dev harness only: ST_DEMO="delay:action,delay:action,…" drives the interactive
@@ -158,9 +171,31 @@ struct CaptureScreen: View {
                 .contentShape(Circle())
             }
             .buttonStyle(PressScaleStyle())
+            closeButton
         }
         .padding(.horizontal, 24)
         .padding(.top, 8)
+    }
+
+    private var closeButton: some View {
+        Button(action: onCancel) {
+            ZStack {
+                Circle().fill(Color.paper).strokeBorder(Color.ink25, lineWidth: 1)
+                CrossGlyph().stroke(Color.ink70, style: .init(lineWidth: 1.6, lineCap: .round))
+                    .frame(width: 8, height: 8)
+            }
+            .frame(width: 34, height: 34)
+            .contentShape(Circle())
+        }
+        .buttonStyle(PressScaleStyle())
+        .accessibilityLabel("Close capture")
+    }
+
+    private var showsFloatingClose: Bool {
+        switch controller.screen {
+        case .starting, .denied, .unavailable: true
+        case .live, .review: false
+        }
     }
 
     private var previewCard: some View {
@@ -366,6 +401,6 @@ private struct EmptyFeedState: View {
     }
 }
 
-#Preview {
-    CaptureScreen()
+private struct CaptureScreen_Previews: PreviewProvider {
+    static var previews: some View { CaptureScreen() }
 }

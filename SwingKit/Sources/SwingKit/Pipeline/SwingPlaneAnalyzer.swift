@@ -38,7 +38,7 @@ enum SwingPlaneAnalyzer {
     }
 
     static func analyze(frames: [PoseFrame], timing: SwingTiming, view: CaptureView,
-                        videoURL: URL, options: Options = .init()) -> PlaneAnalysis {
+                        videoURL: URL, options: Options = .init()) async -> PlaneAnalysis {
         let unavailable = PlaneAnalysis(basePlaneAngle: 0, deviationByPosition: [:], stateByPosition: [:])
         guard view == .downTheLine else { return unavailable } // faceOn: honestly empty, never neutral-faked
 
@@ -56,7 +56,7 @@ enum SwingPlaneAnalyzer {
             guard let idx = nearestFrameIndex(frames, to: t) else { continue }
             let frame = frames[idx]
             guard let grip2 = frame.grip2, let groundY = groundY(of: frame) else { continue }
-            guard let image = try? FrameImage.cgImage(from: videoURL, at: t) else { continue }
+            guard let image = try? await FrameImage.cgImage(from: videoURL, at: t) else { continue }
             if let shaft = ShaftDetector.detectShaft(image: image, grip2: grip2, groundY2: groundY),
                shaft.contrast > (bestShaft?.contrast ?? 0) {
                 bestShaft = shaft
@@ -73,7 +73,7 @@ enum SwingPlaneAnalyzer {
         if line2D == nil {
             let addressFrame = frames[p1.frameIndex]
             if let grip2 = addressFrame.grip2, let gY = groundY(of: addressFrame),
-               let image = try? FrameImage.cgImage(from: videoURL, at: p1.time) {
+               let image = try? await FrameImage.cgImage(from: videoURL, at: p1.time) {
                 let w = Double(image.width), h = Double(image.height)
                 // The ball sits forward of the body: search around the address grip's
                 // x pushed further out along the hip-center -> grip direction, at

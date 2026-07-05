@@ -5,11 +5,11 @@
 // and resets to idle. "Recording" here retains nothing (the source *is* the bundled
 // asset); `finishTake` cuts the requested segment out of it through the same exporter
 // the camera uses, so the full accept path produces a real file URL either way.
-import AVFoundation
+@preconcurrency import AVFoundation
 import Foundation
 import QuartzCore
 
-final class FileFeed: CaptureFeed {
+final class FileFeed: CaptureFeed, @unchecked Sendable {
     var onFrame: ((FeedFrame) -> Void)?
     private(set) var info = FeedInfo()
 
@@ -19,6 +19,8 @@ final class FileFeed: CaptureFeed {
     private var takeActive = false
     private var duration: Double = 0
     private var thread: Thread?
+    private var loadedAsset: AVURLAsset?
+    private var loadedTrack: AVAssetTrack?
 
     init(url: URL) { self.url = url }
 
@@ -41,6 +43,8 @@ final class FileFeed: CaptureFeed {
                             size: size,
                             orientation: Self.orientation(for: transform))
             duration = try await asset.load(.duration).seconds
+            loadedAsset = asset
+            loadedTrack = track
         } catch {
             return .unavailable("fixture unreadable: \(error.localizedDescription)")
         }
@@ -103,10 +107,7 @@ final class FileFeed: CaptureFeed {
     }
 
     private func makeReader() -> (AVAssetReader, AVAssetReaderTrackOutput)? {
-        let asset = AVURLAsset(url: url)
-        // Synchronous track access is fine here: the asset was fully loaded in start()
-        // and this runs on the feed's own thread.
-        guard let track = asset.tracks(withMediaType: .video).first,
+        guard let asset = loadedAsset, let track = loadedTrack,
               let reader = try? AVAssetReader(asset: asset) else { return nil }
         let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
             kCVPixelBufferPixelFormatTypeKey as String:

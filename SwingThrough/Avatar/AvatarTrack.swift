@@ -305,7 +305,11 @@ struct AvatarTrack {
         let ay = [pose[.ankleL]?.y, pose[.ankleR]?.y].compactMap { $0 }
         guard let ground = ay.min() else { return pose }
         var out = pose
-        for k in out.keys { out[k]!.y -= ground }
+        for k in out.keys {
+            guard var point = out[k] else { continue }
+            point.y -= ground
+            out[k] = point
+        }
         return out
     }
 

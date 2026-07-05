@@ -77,7 +77,6 @@ enum CheckpointDetector {
         // --- handedness from elbow fold (address -> top). ---
         let handedness = HandednessDetector.detect(frames: frames, addressIndex: p1Index, topIndex: roughTop)
         let leadShoulder: Joint = handedness.leadIsLeft ? .shoulderL : .shoulderR
-        let leadWrist: Joint = handedness.leadIsLeft ? .wristL : .wristR
         let trailHip: Joint = handedness.leadIsLeft ? .hipR : .hipL
 
         // --- lead-arm "above/below horizontal" signal, every frame — from the 2D

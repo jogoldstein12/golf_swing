@@ -7,6 +7,7 @@ import SwingKit
 struct AnalysisScreen: View {
     @Bindable var model: AnalysisModel
     var onBack: (() -> Void)? = nil
+    var onRecord: () -> Void = {}
 
     var body: some View {
         ZStack {
@@ -42,7 +43,7 @@ struct AnalysisScreen: View {
 
                     goals.padding(.top, 40)
 
-                    PrimaryButton("Record next swing") {}
+                    PrimaryButton("Record next swing", action: onRecord)
                         .padding(.top, 36)
                         .id("bottom")
                 }

@@ -105,6 +105,16 @@ final class CaptureController: ObservableObject {
         feed?.stop()
     }
 
+    func restart() {
+        stopFeed()
+        feed = nil
+        screen = .starting
+        phase = .idle(hold: 0)
+        checklist = SetupChecklist()
+        displayJoints = [:]
+        start()
+    }
+
     func setAngle(_ new: CaptureView) {
         guard new != angle else { return }
         angle = new

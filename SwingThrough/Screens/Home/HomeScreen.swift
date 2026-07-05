@@ -3,11 +3,32 @@
 import SwiftData
 import SwiftUI
 import SwingKit
+import PhotosUI
+import CoreTransferable
+import UniformTypeIdentifiers
+
+private struct ImportedSwingVideo: Transferable {
+    let url: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(contentType: .movie) { video in
+            SentTransferredFile(video.url)
+        } importing: { received in
+            // The picker-owned URL is only guaranteed to live for this closure.
+            let ext = received.file.pathExtension.isEmpty ? "mov" : received.file.pathExtension
+            let copy = FileManager.default.temporaryDirectory
+                .appendingPathComponent("import-\(UUID().uuidString).\(ext)")
+            try FileManager.default.copyItem(at: received.file, to: copy)
+            return ImportedSwingVideo(url: copy)
+        }
+    }
+}
 
 struct HomeScreen: View {
     @Query(sort: \SwingRecord.date, order: .reverse) private var swings: [SwingRecord]
     @Environment(\.modelContext) private var context
     var onRecord: () -> Void = {}
+    var onImport: (URL) -> Void = { _ in }
     var onOpen: (SwingRecord) -> Void = { _ in }
     var onDrills: () -> Void = {}
 
@@ -33,6 +54,8 @@ struct HomeScreen: View {
 
                     PrimaryButton("Record a swing", action: onRecord)
                         .padding(.top, 26)
+
+                    importButton.padding(.top, 12)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 22)
@@ -40,9 +63,18 @@ struct HomeScreen: View {
             }
         }
         .onAppear(perform: seedSampleIfEmpty)
+        .alert("Couldn't import that video", isPresented: $showImportError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Choose a video that is stored on this iPhone or available to download from iCloud.")
+        }
     }
 
     @State private var showSettings = false
+    @State private var selectedVideo: PhotosPickerItem?
+    @State private var importingVideo = false
+    @State private var showImportError = false
+    @State private var sampleUnavailable = false
 
     private var header: some View {
         HStack {
@@ -173,6 +205,45 @@ struct HomeScreen: View {
                     .font(Type.ui(13.5))
                     .lineSpacing(3.5)
                     .foregroundStyle(Color.ink70)
+                if sampleUnavailable {
+                    Text("The bundled sample could not be loaded. Recording and video import are still available.")
+                        .font(Type.ui(12))
+                        .lineSpacing(3)
+                        .foregroundStyle(Color.brickText)
+                        .padding(.top, 4)
+                }
+            }
+        }
+    }
+
+    private var importButton: some View {
+        PhotosPicker(selection: $selectedVideo, matching: .videos) {
+            HStack(spacing: 8) {
+                if importingVideo { ProgressView().controlSize(.small) }
+                MicroLabel(importingVideo ? "Importing video" : "Import a video", color: .ink70)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 15)
+            .background(Capsule().stroke(Color.ink25, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .disabled(importingVideo)
+        .onChange(of: selectedVideo) { _, item in
+            guard let item else { return }
+            importingVideo = true
+            Task {
+                do {
+                    guard let video = try await item.loadTransferable(type: ImportedSwingVideo.self) else {
+                        throw CocoaError(.fileReadUnknown)
+                    }
+                    importingVideo = false
+                    selectedVideo = nil
+                    onImport(video.url)
+                } catch {
+                    importingVideo = false
+                    selectedVideo = nil
+                    showImportError = true
+                }
             }
         }
     }
@@ -181,7 +252,10 @@ struct HomeScreen: View {
     /// before the first real capture. Clearly labeled; removable.
     private func seedSampleIfEmpty() {
         guard swings.isEmpty else { return }
-        let demo = DemoData.load().report
+        guard let demo = DemoData.load()?.report else {
+            sampleUnavailable = true
+            return
+        }
         let record = SwingRecord(
             id: demo.id, date: demo.date, club: demo.club, score: demo.score.total,
             viewRaw: demo.view.rawValue, reportFileName: "", videoFileName: nil,

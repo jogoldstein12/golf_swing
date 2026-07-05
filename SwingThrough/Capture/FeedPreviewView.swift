@@ -49,16 +49,14 @@ struct FeedPreviewView: UIViewRepresentable {
 
     final class LayerView: UIView {
         override class var layerClass: AnyClass { AVSampleBufferDisplayLayer.self }
-        var displayLayer: AVSampleBufferDisplayLayer {
-            layer as! AVSampleBufferDisplayLayer
-        }
+        var displayLayer: AVSampleBufferDisplayLayer? { layer as? AVSampleBufferDisplayLayer }
     }
 
     func makeUIView(context: Context) -> LayerView {
         let view = LayerView()
-        view.displayLayer.videoGravity = .resizeAspectFill
+        view.displayLayer?.videoGravity = .resizeAspectFill
         view.backgroundColor = .clear
-        sink.attach(view.displayLayer)
+        if let layer = view.displayLayer { sink.attach(layer) }
         return view
     }
 
@@ -71,7 +69,7 @@ struct LoopingPlayerView: UIViewRepresentable {
 
     final class PlayerView: UIView {
         override class var layerClass: AnyClass { AVPlayerLayer.self }
-        var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+        var playerLayer: AVPlayerLayer? { layer as? AVPlayerLayer }
         var looper: AVPlayerLooper?
     }
 
@@ -81,8 +79,8 @@ struct LoopingPlayerView: UIViewRepresentable {
         player.isMuted = true
         view.looper = AVPlayerLooper(player: player,
                                      templateItem: AVPlayerItem(url: url))
-        view.playerLayer.player = player
-        view.playerLayer.videoGravity = .resizeAspectFill
+        view.playerLayer?.player = player
+        view.playerLayer?.videoGravity = .resizeAspectFill
         player.play()
         return view
     }
@@ -90,8 +88,8 @@ struct LoopingPlayerView: UIViewRepresentable {
     func updateUIView(_ view: PlayerView, context: Context) {}
 
     static func dismantleUIView(_ view: PlayerView, coordinator: ()) {
-        view.playerLayer.player?.pause()
+        view.playerLayer?.player?.pause()
         view.looper = nil
-        view.playerLayer.player = nil
+        view.playerLayer?.player = nil
     }
 }

@@ -7,11 +7,12 @@
 // → `.unavailable`); the configuration is deliberately standard AVFoundation so it
 // plausibly works on hardware without exotic-API risk. Real-device verification is a
 // later pass.
-import AVFoundation
+@preconcurrency import AVFoundation
 import Foundation
 import QuartzCore
 
-final class CameraFeed: NSObject, CaptureFeed, AVCaptureVideoDataOutputSampleBufferDelegate {
+final class CameraFeed: NSObject, CaptureFeed, AVCaptureVideoDataOutputSampleBufferDelegate,
+                        @unchecked Sendable {
     var onFrame: ((FeedFrame) -> Void)?
     private(set) var info = FeedInfo()
 
@@ -51,7 +52,18 @@ final class CameraFeed: NSObject, CaptureFeed, AVCaptureVideoDataOutputSampleBuf
 
     private func configure(_ device: AVCaptureDevice) -> FeedAvailability {
         session.beginConfiguration()
-        defer { session.commitConfiguration() }
+        let availability = configureSession(device)
+        session.commitConfiguration()
+
+        // AVFoundation raises an Objective-C exception if startRunning() is called
+        // before commitConfiguration(). Keep it strictly outside that transaction.
+        if case .running = availability {
+            session.startRunning()
+        }
+        return availability
+    }
+
+    private func configureSession(_ device: AVCaptureDevice) -> FeedAvailability {
         session.sessionPreset = .inputPriority   // the chosen format governs
 
         guard let input = try? AVCaptureDeviceInput(device: device),
@@ -120,7 +132,6 @@ final class CameraFeed: NSObject, CaptureFeed, AVCaptureVideoDataOutputSampleBuf
                               height: CGFloat(max(dims.width, dims.height)))
         info = FeedInfo(fps: fps, size: portrait, orientation: orientation)
 
-        session.startRunning()
         return .running
     }
 

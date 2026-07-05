@@ -85,10 +85,10 @@ final class AnalysisModel {
         // so the pane never sits on a blank layer at launch.
         if let item = player.currentItem {
             Task { @MainActor [weak self] in
-                while item.status != .readyToPlay {
+                while item.status == .unknown {
                     try? await Task.sleep(nanoseconds: 40_000_000)
                 }
-                guard let self, !self.isPlaying else { return }
+                guard item.status == .readyToPlay, let self, !self.isPlaying else { return }
                 self.seek(to: self.time)
             }
         }

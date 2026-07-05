@@ -107,7 +107,9 @@ public enum CoachingPayloadEncoder {
         }
 
         func dofEntries(_ dof: [SwingPosition: SixDOF]) -> [DOFEntry] {
-            dof.keys.sorted().map { DOFEntry(position: $0.shortName, dof: SixDOFPayload(dof[$0]!)) }
+            dof.keys.sorted().compactMap { position in
+                dof[position].map { DOFEntry(position: position.shortName, dof: SixDOFPayload($0)) }
+            }
         }
 
         let metrics = report.metrics.map {

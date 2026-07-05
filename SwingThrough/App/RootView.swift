@@ -15,24 +15,29 @@ struct RootView: View {
     @State private var path = NavigationPath()
     @State private var showCapture = false
     @State private var session = SwingSession()
+    let startupWarning: String?
 
-    @State private var demoAnalysis: AnalysisModel = {
-        let demo = DemoData.load()
+    @State private var demoAnalysis: AnalysisModel? = {
+        guard let demo = DemoData.load() else { return nil }
         return AnalysisModel(report: demo.report, videoURL: demo.videoURL, videoSize: demo.videoSize)
     }()
+
+    init(startupWarning: String? = nil) {
+        self.startupWarning = startupWarning
+    }
 
     var body: some View {
         let env = ProcessInfo.processInfo.environment
         switch env["ST_SCREEN"] {
         case "avatar": AvatarPreviewScreen()
         case "capture": CaptureScreen()
-        case "analysis": AnalysisScreen(model: demoAnalysis)
+        case "analysis": demoAnalysisView
         case "settings": SettingsSheet()
         case "drills": DrillsScreen()
         case "analyzing": AnalyzingScreen(progress: 0.55, phase: "Measuring plane and sequence")
         default:
             if env["ST_POS"] != nil || env["ST_SCROLL"] != nil {
-                AnalysisScreen(model: demoAnalysis)
+                demoAnalysisView
             } else {
                 main
             }
@@ -43,14 +48,17 @@ struct RootView: View {
         NavigationStack(path: $path) {
             HomeScreen(
                 onRecord: { showCapture = true },
+                onImport: { analyze($0, view: .downTheLine) },
                 onOpen: { path.append($0) },
                 onDrills: { path.append(Route.drills) }
             )
             .navigationDestination(for: SwingRecord.self) { record in
                 if let model = SwingStore.analysisModel(for: record) {
-                    AnalysisScreen(model: model, onBack: { path.removeLast() })
+                    AnalysisScreen(model: model, onBack: { path.removeLast() }, onRecord: recordNextSwing)
                         .navigationBarBackButtonHidden(true)
                         .toolbar(.hidden, for: .navigationBar)
+                } else {
+                    unavailableAnalysis(onBack: { path.removeLast() })
                 }
             }
             .navigationDestination(for: Route.self) { route in
@@ -75,14 +83,9 @@ struct RootView: View {
             }
         }
         .fullScreenCover(isPresented: $showCapture) {
-            CaptureScreen(onCaptured: { url, view in
+            CaptureScreen(onCancel: { showCapture = false }, onCaptured: { url, view in
                 showCapture = false
-                Task {
-                    if let record = await session.run(url: url, view: view, club: "7 Iron",
-                                                      context: modelContext, history: swings) {
-                        path.append(record)
-                    }
-                }
+                analyze(url, view: view)
             })
         }
         .overlay {
@@ -98,6 +101,50 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.35), value: isRunning)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if let startupWarning {
+                Text(startupWarning)
+                    .font(Type.ui(11, .medium))
+                    .foregroundStyle(Color.bone)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.brickText)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var demoAnalysisView: some View {
+        if let demoAnalysis {
+            AnalysisScreen(model: demoAnalysis)
+        } else {
+            unavailableAnalysis(onBack: nil)
+        }
+    }
+
+    private func analyze(_ url: URL, view: CaptureView) {
+        Task {
+            let record = await session.run(url: url, view: view, club: "7 Iron",
+                                           context: modelContext, history: swings)
+            removeWorkingVideoIfNeeded(url)
+            if let record { path.append(record) }
+        }
+    }
+
+    private func recordNextSwing() {
+        if !path.isEmpty { path.removeLast() }
+        showCapture = true
+    }
+
+    private func removeWorkingVideoIfNeeded(_ url: URL) {
+        let path = url.standardizedFileURL.path
+        let temporary = FileManager.default.temporaryDirectory.standardizedFileURL.path
+        let swings = SwingStore.swingsDirectory.standardizedFileURL.path
+        if path.hasPrefix(temporary + "/")
+            || (path.hasPrefix(swings + "/") && url.lastPathComponent.hasPrefix("swing-")) {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 
     private var isRunning: Bool {
@@ -143,6 +190,28 @@ struct RootView: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
+        }
+    }
+
+    private func unavailableAnalysis(onBack: (() -> Void)?) -> some View {
+        ZStack {
+            Color.bone.grain().ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 18) {
+                FloatCard(padding: 24) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        MicroLabel("Swing unavailable", color: .brickText)
+                        Text("This swing could not be opened.")
+                            .font(Type.display(24))
+                            .foregroundStyle(Color.ink)
+                        Text("Its video or analysis file is missing or unreadable. Record or import another swing to continue.")
+                            .font(Type.ui(13))
+                            .lineSpacing(3)
+                            .foregroundStyle(Color.ink70)
+                    }
+                }
+                if let onBack { PrimaryButton("Back to swings", action: onBack) }
+            }
+            .padding(24)
         }
     }
 }

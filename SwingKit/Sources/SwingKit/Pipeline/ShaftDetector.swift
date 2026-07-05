@@ -81,7 +81,7 @@ enum ShaftDetector {
                 }
                 guard scores.count > options.samplesAlongLine / 2 else { offset += offsetStepPx; continue }
                 let avg = scores.reduce(0, +) / Double(scores.count)
-                if best == nil || avg > best!.score {
+                if best.map({ avg > $0.score }) ?? true {
                     best = (deg, offset, avg, scores)
                 }
                 offset += offsetStepPx

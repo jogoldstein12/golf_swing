@@ -123,6 +123,6 @@ struct SetupSheet: View {
     }
 }
 
-#Preview {
-    SetupSheet(angle: .downTheLine)
+private struct SetupSheet_Previews: PreviewProvider {
+    static var previews: some View { SetupSheet(angle: .downTheLine) }
 }

@@ -22,8 +22,6 @@
 	<string>1</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Swing Through records your swing to measure it. Video is analyzed on this device.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Audio is captured with your swing recordings.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Import a swing video from your library for analysis.</string>
 	<key>UIAppFonts</key>

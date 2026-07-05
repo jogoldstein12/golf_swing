@@ -75,7 +75,7 @@ enum SwingStore {
         guard let videoURL = videoURL(for: record) else { return nil }
         let report: SwingReport?
         if record.isSample {
-            report = DemoData.load().report
+            report = DemoData.load()?.report
         } else {
             report = loadReport(named: record.reportFileName)
         }

@@ -114,7 +114,8 @@ enum BodyOrientation {
         var prevIdx: Int?
         for i in 0..<n where rotations[i] != nil {
             if let p = prevIdx {
-                increments[i] = yawIncrementDeg(from: rotations[p]!, to: rotations[i]!)
+                guard let previous = rotations[p], let current = rotations[i] else { continue }
+                increments[i] = yawIncrementDeg(from: previous, to: current)
                 if abs(increments[i]) / Double(max(1, i - p)) > maxRateDegPerFrame {
                     rateOK[i] = false
                     rateOK[p] = false
@@ -152,7 +153,8 @@ enum BodyOrientation {
 
         var yaw = [Double](repeating: .nan, count: n)
         for i in 0..<n where trusted[i] {
-            yaw[i] = yawIncrementDeg(from: rRef, to: rotations[i]!)
+            guard let rotation = rotations[i] else { continue }
+            yaw[i] = yawIncrementDeg(from: rRef, to: rotation)
         }
         guard let filled = Filters.fillGaps(yaw) else { return nil }
         return Filters.savitzkyGolay(Filters.hampel(filled, halfWindow: 4, k: 3.0))

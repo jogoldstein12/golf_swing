@@ -79,6 +79,10 @@ public struct PoseExtractor {
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
         ])
         output.alwaysCopiesSampleData = false
+        guard reader.canAdd(output) else {
+            throw NSError(domain: "SwingKit", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey: "video frames could not be decoded"])
+        }
         reader.add(output)
         if let w = options.window {
             reader.timeRange = CMTimeRange(
