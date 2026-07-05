@@ -148,42 +148,121 @@ struct MarkerDetailCard: View {
 
 struct MeterRow: View {
     let m: MetricValue
+    /// Signed change vs the prior swing (headline rows only). Never passed for a
+    /// withheld metric — the caller resolves it through SwingComparison, which refuses
+    /// to difference un-measured values.
+    var delta: SwingComparison.MetricDelta? = nil
+
+    /// A withheld metric renders as "Not measured" with its reason — never a number.
+    private var isWithheld: Bool { m.quality?.provenance == .unavailable }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 MicroLabel(m.label)
-                if let provenance = m.quality?.provenance {
-                    Text(provenance.rawValue.capitalized)
-                        .font(Type.ui(9, .medium))
+                provenanceTag
+                Spacer()
+                if isWithheld {
+                    Text("Not measured")
+                        .font(Type.ui(13, .medium))
+                        .foregroundStyle(Color.ink45)
+                } else {
+                    (Text(trimmed(m.value)).foregroundStyle(Color.ink)
+                        + Text(m.unit).font(Type.display(15)).foregroundStyle(Color.ink45))
+                        .font(Type.display(26))
+                }
+            }
+            if isWithheld {
+                if let reason = m.quality?.warnings.first, !reason.isEmpty {
+                    Text(reason)
+                        .font(Type.ui(12))
+                        .lineSpacing(2)
                         .foregroundStyle(Color.ink45)
                 }
-                Spacer()
-                (Text(trimmed(m.value)).foregroundStyle(Color.ink)
-                    + Text(m.unit).font(Type.display(15)).foregroundStyle(Color.ink45))
-                    .font(Type.display(26))
-            }
-            GeometryReader { geo in
-                let w = geo.size.width
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.ink08).frame(height: 3)
-                    Capsule().fill(Color.fairway.opacity(0.45))
-                        .frame(width: max(0, (m.bandFill.upperBound - m.bandFill.lowerBound)) * w, height: 3)
-                        .offset(x: m.bandFill.lowerBound * w)
-                    Circle()
-                        .fill(m.inBand ? Color.fairwayDeep : Color.ink)
-                        .stroke(Color.bone, lineWidth: 1.5)
-                        .frame(width: 10, height: 10)
-                        .offset(x: m.fill * w - 5)
+            } else {
+                GeometryReader { geo in
+                    let w = geo.size.width
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.ink08).frame(height: 3)
+                        Capsule().fill(Color.fairway.opacity(0.45))
+                            .frame(width: max(0, (m.bandFill.upperBound - m.bandFill.lowerBound)) * w, height: 3)
+                            .offset(x: m.bandFill.lowerBound * w)
+                        Circle()
+                            .fill(m.inBand ? Color.fairwayDeep : Color.ink)
+                            .stroke(Color.bone, lineWidth: 1.5)
+                            .frame(width: 10, height: 10)
+                            .offset(x: m.fill * w - 5)
+                    }
+                }
+                .frame(height: 10)
+                if let delta {
+                    DeltaBadge(delta: delta, caption: "vs last")
                 }
             }
-            .frame(height: 10)
         }
         .padding(.vertical, 18)
     }
 
+    /// Provenance word, color-coded: measured is quiet, an inferred/interpolated value
+    /// wears an amber caution. Withheld is handled by the "Not measured" state instead.
+    @ViewBuilder
+    private var provenanceTag: some View {
+        if let provenance = m.quality?.provenance, provenance != .unavailable {
+            Text(provenance.rawValue.capitalized)
+                .font(Type.ui(9, .medium))
+                .foregroundStyle(provenance == .measured ? Color.ink45 : Color.amber)
+        }
+    }
+
     private func trimmed(_ v: Double) -> String {
         v == v.rounded() ? String(Int(v)) : String(format: "%.1f", v)
+    }
+}
+
+// MARK: - Metrics section (progressive disclosure)
+
+/// The measurements block: 2–4 headline meters always visible, the rest collapsed behind
+/// "See all measurements". Headline rows carry a signed delta vs the prior swing; every
+/// row surfaces provenance, and a withheld metric shows "Not measured" rather than a value.
+struct MetricsSection: View {
+    let report: SwingReport
+    var priorReport: SwingReport? = nil
+    @State private var expanded = false
+
+    /// Keep the first three metrics up front (falls back to however many exist).
+    private var headlineCount: Int { min(3, report.metrics.count) }
+    private var headline: [MetricValue] { Array(report.metrics.prefix(headlineCount)) }
+    private var rest: [MetricValue] { Array(report.metrics.dropFirst(headlineCount)) }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(headline.enumerated()), id: \.element.label) { i, m in
+                if i > 0 { Hairline() }
+                MeterRow(m: m, delta: delta(for: m))
+            }
+            if !rest.isEmpty {
+                Hairline()
+                DisclosureGroup(isExpanded: $expanded) {
+                    VStack(spacing: 0) {
+                        ForEach(Array(rest.enumerated()), id: \.element.label) { _, m in
+                            Hairline()
+                            MeterRow(m: m)
+                        }
+                    }
+                } label: {
+                    MicroLabel(expanded ? "Hide measurements" : "See all measurements", color: .ink45)
+                        .padding(.vertical, 16)
+                        .contentShape(Rectangle())
+                }
+                .tint(.ink45)
+                .accessibilityIdentifier("seeAllMeasurements")
+            }
+        }
+    }
+
+    private func delta(for m: MetricValue) -> SwingComparison.MetricDelta? {
+        guard let priorReport else { return nil }
+        return SwingComparison.delta(for: m.label, current: report, previous: priorReport)
     }
 }
 
