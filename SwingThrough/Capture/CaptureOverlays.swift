@@ -201,6 +201,8 @@ struct ChecklistChips: View {
             Text(item.label.uppercased())
                 .font(Type.ui(10, .bold))
                 .tracking(1.1)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
                 .foregroundStyle(on ? Color.fairwayText : Color.ink45)
         }
         .padding(.horizontal, 11)
