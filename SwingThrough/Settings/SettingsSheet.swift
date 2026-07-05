@@ -11,6 +11,10 @@ struct SettingsSheet: View {
     @State private var hasStoredKey = APIKeyStore.hasKey
     @State private var diagnostics = DiagnosticsStore.shared
     @State private var confirmDeleteAll = false
+    // Default ON; the audio session still respects the hardware mute switch. Haptics are
+    // not gated by this — they stay on regardless (silent, private confirmation).
+    @AppStorage(CaptureCues.audioCuesDefaultsKey) private var audioCues = true
+    @AppStorage(CaptureOnboarding.hasSeenDefaultsKey) private var hasSeenOnboarding = false
 
     var body: some View {
         ZStack {
@@ -104,6 +108,53 @@ struct SettingsSheet: View {
                     .font(Type.displayItalic(15))
                     .foregroundStyle(Color.ink45)
                     .padding(.top, 18)
+
+                Hairline().padding(.top, 24)
+
+                Text("Capture")
+                    .font(Type.display(22))
+                    .foregroundStyle(Color.ink)
+                    .padding(.top, 22)
+
+                Button {
+                    audioCues.toggle()
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            MicroLabel("Spoken & chime cues", color: .ink70)
+                            Text("Set, recording, and captured — plus the 3-2-1 countdown. Muted by the ringer switch.")
+                                .font(Type.ui(11.5))
+                                .lineSpacing(2.5)
+                                .foregroundStyle(Color.ink45)
+                        }
+                        Spacer(minLength: 12)
+                        Text(audioCues ? "On" : "Off")
+                            .font(Type.ui(11, .bold))
+                            .tracking(1.1)
+                            .foregroundStyle(audioCues ? Color.fairwayText : Color.ink45)
+                            .padding(.horizontal, 11)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(audioCues ? Color.fairwayDeep.opacity(0.14)
+                                                                 : Color.sand))
+                    }
+                    .padding(.top, 20)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    hasSeenOnboarding = false
+                } label: {
+                    HStack {
+                        MicroLabel(hasSeenOnboarding ? "Show capture guide again" : "Guide will show next capture",
+                                   color: hasSeenOnboarding ? .ink70 : .fairwayText)
+                        Spacer()
+                    }
+                    .padding(.top, 20)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(!hasSeenOnboarding)
 
 #if DEBUG
                 if let exportURL = diagnostics.latestExportURL {

@@ -26,6 +26,25 @@ struct RootView: View {
         return AnalysisModel(report: demo.report, videoURL: demo.videoURL, videoSize: demo.videoSize)
     }()
 
+    // Dev-only: the sample swing degraded to an insufficient-data read, so the
+    // low-confidence lead + "Not scored" state can be screenshot / UI-tested directly.
+    @State private var lowConfidenceDemo: AnalysisModel? = {
+        guard let demo = DemoData.load() else { return nil }
+        var report = demo.report
+        report.coaching = nil
+        report.score = SwingScore(total: 0, components: [], availability: .insufficientData)
+        report.quality = ReportQuality(
+            twoDCoverage: 0.28, threeDCoverage: 0.19,
+            checkpointConfidence: 0.31, orientationConfidence: 0.34,
+            planeBasis: nil,
+            warnings: [
+                "Only part of your body stayed in frame through the swing.",
+                "Low light made the clubhead hard to track at speed."
+            ]
+        )
+        return AnalysisModel(report: report, videoURL: demo.videoURL, videoSize: demo.videoSize)
+    }()
+
     init(startupWarning: String? = nil) {
         self.startupWarning = startupWarning
     }
@@ -39,6 +58,7 @@ struct RootView: View {
         case "settings": SettingsSheet()
         case "drills": DrillsScreen()
         case "analyzing": AnalyzingScreen(progress: 0.55, phase: "Measuring plane and sequence")
+        case "analysisLowConf": lowConfidenceAnalysisView
         default:
             if env["ST_POS"] != nil || env["ST_SCROLL"] != nil {
                 demoAnalysisView
@@ -60,7 +80,13 @@ struct RootView: View {
             )
             .navigationDestination(for: SwingRecord.self) { record in
                 if let model = SwingStore.analysisModel(for: record) {
-                    AnalysisScreen(model: model, onBack: { path.removeLast() }, onRecord: recordNextSwing)
+                    AnalysisScreen(
+                        model: model,
+                        onBack: { path.removeLast() },
+                        onRecord: recordNextSwing,
+                        priorReport: priorReport(for: record),
+                        clubHistory: clubHistory(for: record)
+                    )
                         .navigationBarBackButtonHidden(true)
                         .toolbar(.hidden, for: .navigationBar)
                 } else {
@@ -178,6 +204,48 @@ struct RootView: View {
         } else {
             unavailableAnalysis(onBack: nil)
         }
+    }
+
+    @ViewBuilder
+    private var lowConfidenceAnalysisView: some View {
+        if let lowConfidenceDemo {
+            AnalysisScreen(model: lowConfidenceDemo)
+        } else {
+            unavailableAnalysis(onBack: nil)
+        }
+    }
+
+    // MARK: - Prior-swing resolution (Track B: current-vs-previous, trends)
+
+    /// Load the full report behind a stored record (bundled sample or on-disk JSON).
+    private func report(for record: SwingRecord) -> SwingReport? {
+        if record.isSample { return DemoData.load()?.report }
+        return SwingStore.loadReport(named: record.reportFileName)
+    }
+
+    /// The most recent swing STRICTLY before `record` with the same club AND view — the
+    /// only fair comparison for signed deltas. `swings` is date-descending, so the first
+    /// match is the nearest prior swing. nil when there is no comparable history.
+    private func priorReport(for record: SwingRecord) -> SwingReport? {
+        let prior = swings.first { other in
+            other.id != record.id
+                && other.date < record.date
+                && other.club == record.club
+                && other.viewRaw == record.viewRaw
+        }
+        return prior.flatMap(report(for:))
+    }
+
+    /// The last N same-club/same-view swings up to and including `record`, in
+    /// CHRONOLOGICAL order (oldest first, current last) — the ordering SwingComparison
+    /// expects for fault-fixed / improving detection.
+    private func clubHistory(for record: SwingRecord) -> [SwingReport] {
+        let comparable = swings.filter { other in
+            other.date <= record.date
+                && other.club == record.club
+                && other.viewRaw == record.viewRaw
+        }
+        return comparable.prefix(SwingComparison.trendWindow).reversed().compactMap(report(for:))
     }
 
     private func presentSetup(for url: URL, suggestedView: CaptureView) {

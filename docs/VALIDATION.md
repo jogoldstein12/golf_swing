@@ -88,6 +88,77 @@ record provenance/consent, view, handedness, club, source format, expected check
 times, per-metric tolerances, and known visibility limitations. Do not commit private
 user footage to the repository.
 
+The registry is enforced in CI by `AccuracyRegressionTests` (SwingKitTests). Each row is
+a fixture the harness runs through the real pipeline, asserting checkpoint times and
+per-metric measured values stay inside their tolerance windows (not byte-identical
+reports). A fixture that drifts out of tolerance fails CI. Add a fixture by extending
+`AccuracyRegressionTests.fixtures` with the row's expected windows and adding the row
+below. On a host without an AVFoundation decoder for the clip (the CLI/`swift test` host —
+see the `-11821` note above) each fixture skips cleanly; the iPhone Simulator scheme runs
+them fully.
+
 | Fixture ID | Provenance | View | Club | FPS | Expected checkpoints | Metric tolerances | Known limitations |
 |---|---|---|---|---:|---|---|---|
-| bundled-sample | Illustrative fixture; production-report provenance pending | DTL | 7 Iron | 25 | Pending | Pending | Current report must not be treated as validation truth. |
+| bundled-sample | Illustrative fixture; production-report provenance pending | DTL | 7 Iron | 25 | Pending annotation | A0 gate only (see below) | Degenerate 3D yaw; must resolve to `insufficientData` / turn metrics withheld — never a confident total. |
+
+### A0 gate (bundled-sample)
+
+The bundled clip is the A0 evidence fixture (docs/BETA_FEATURES_SPEC.md): the production
+pipeline produced a 4.2° shoulder turn / 2.6° X-factor / 19.9° plane report while
+reporting `orientationConfidence ≈ 0.84` and `availability: .available`. With A1
+plausibility gating in place, the harness asserts this fixture resolves to
+`score.availability == .insufficientData` (or its turn metrics marked `.unavailable`).
+This is asserted deterministically — independent of any decoder — by
+`PlausibilityGateTests.testA0DegenerateReportNoLongerScoresConfident`, which reproduces
+the exact metric/quality inputs and checks the gate flips the score.
+
+### Per-metric tolerance rationale
+
+When real annotated footage lands, populate `metricTolerances` per fixture. Rationale for
+the intended windows (wider than ideal bands — these test that the *measurement* is
+stable, not that the swing is good):
+
+- **Checkpoint times** — ±1 frame at the achieved capture rate (≈ ±0.033 s at 30 fps),
+  since checkpoint detection resolves to a sampled frame.
+- **Tempo** — ±0.3 (:1); ratio of two checkpoint intervals, so it inherits ~2× the
+  single-checkpoint timing error.
+- **Spine angle at address** — ±3°; single-frame tilt, no cross-frame stabilization.
+- **Shoulder / hip turn, X-factor** — ±8°; these ride the 3D-orientation stream and its
+  documented yaw-rigidity compression. Only asserted when provenance is `.measured` (a
+  gate-withheld value is allowed to drift).
+- **Swing plane deviation** — ±2.5°; image-space grip-path geometry, the most trusted 3D
+  number.
+
+### Plausibility envelopes (A1)
+
+Anatomical validity envelopes gating implausible measurements (`PlausibilityGate`), wider
+than the ideal bands in SWING_MODEL.md — "possible for a human," not "good":
+
+| Metric | Envelope | Withheld when outside |
+|---|---|---|
+| Shoulder turn | 20–150° | provenance → `.unavailable`, orientation confidence collapsed |
+| Hip turn | 5–90° | provenance → `.unavailable`, orientation confidence collapsed |
+| X-factor at transition | 5–80° | provenance → `.unavailable`, orientation confidence collapsed |
+| Spine angle | 15–55° | provenance → `.unavailable` |
+| Swing plane deviation | |Δ| ≤ 25° | provenance → `.unavailable` |
+| Tempo | 1.0–6.0 (:1) | provenance → `.unavailable` |
+
+### Orientation-provenance thresholds (A2)
+
+Fraction of trusted-orientation frames through the swing, from
+`BodyOrientation.orientationTrustMask`:
+
+- ≥ 0.60 — orientation-dependent metrics (turn / X-factor / plane) reported `.measured`.
+- 0.35–0.60 — those metrics degrade to `.inferred` (shown as an estimate with a caveat).
+- < 0.35 — those metrics are withheld (`.unavailable`); the score's orientation gate also
+  trips, so the whole total resolves to `insufficientData`.
+- Orientation-independent metrics (tempo, posture, translational DOF) are never degraded
+  by this rule.
+
+### Full-FPS A/B (bounded-sampling validation)
+
+Until the bounded Vision sample rates (coarse 12 fps / detailed 30 fps) are validated
+against footage, compare against a full-FPS run for the same clip: run `swingctl analyze`
+on the fixture and diff the report against a full-rate pass. Keep the bounded rates only
+where the A/B metric deltas stay inside the tolerance windows above. Record the A/B deltas
+in a device-run row when footage is available.

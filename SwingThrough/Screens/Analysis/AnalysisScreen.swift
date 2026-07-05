@@ -9,6 +9,12 @@ struct AnalysisScreen: View {
     @State private var enhancedCoaching = EnhancedCoachingStore.shared
     var onBack: (() -> Void)? = nil
     var onRecord: () -> Void = {}
+    /// Most recent prior swing of the SAME club AND view, resolved by RootView from the
+    /// swing history. Drives the current-vs-previous deltas. nil when there is none.
+    var priorReport: SwingReport? = nil
+    /// Recent same-club swings in chronological order (oldest first, current last), for
+    /// measured fault-fixed / improving detection on the lead card.
+    var clubHistory: [SwingReport] = []
 
     var body: some View {
         ZStack {
@@ -19,6 +25,11 @@ struct AnalysisScreen: View {
                     header
                     heading.padding(.top, 36)
                     heroCard.padding(.top, 20)
+
+                    if LeadCard.shouldShow(for: model.report) {
+                        LeadCard(report: model.report, priorReport: priorReport, history: clubHistory)
+                            .padding(.top, 20)
+                    }
 
                     if let marker = model.selectedMarker {
                         MarkerDetailCard(marker: marker) {
@@ -37,7 +48,14 @@ struct AnalysisScreen: View {
                     ScoreBlock(score: model.report.score, verdict: model.report.coaching?.verdict)
                         .padding(.top, 40)
 
-                    if let warnings = model.report.quality?.warnings, !warnings.isEmpty {
+                    if let scoreDelta {
+                        scoreDeltaBadge(scoreDelta).padding(.top, 10)
+                    }
+
+                    if let warnings = model.report.quality?.warnings, !warnings.isEmpty,
+                       model.report.score.availability != .insufficientData {
+                        // When the score is insufficient the LeadCard already lists these
+                        // warnings up top, so this lower "notes" card would just repeat them.
                         FloatCard(padding: 18) {
                             VStack(alignment: .leading, spacing: 7) {
                                 MicroLabel("Measurement notes", color: .brickText)
@@ -54,7 +72,8 @@ struct AnalysisScreen: View {
                     Hairline().padding(.top, 32)
                         .id("metrics")
 
-                    metrics.padding(.top, 8)
+                    MetricsSection(report: model.report, priorReport: priorReport)
+                        .padding(.top, 8)
 
                     goals.padding(.top, 40)
 
@@ -203,16 +222,26 @@ struct AnalysisScreen: View {
         return "\(p.name) · \(p.shortName)"
     }
 
-    // MARK: metrics + goals
+    // MARK: score delta (current vs previous)
 
-    private var metrics: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(model.report.metrics.enumerated()), id: \.element.label) { i, m in
-                if i > 0 { Hairline() }
-                MeterRow(m: m)
-            }
+    private var scoreDelta: Int? {
+        guard let priorReport else { return nil }
+        return SwingComparison.scoreDelta(current: model.report, previous: priorReport)
+    }
+
+    private func scoreDeltaBadge(_ value: Int) -> some View {
+        let color: Color = value > 0 ? .fairwayText : value < 0 ? .brickText : .ink45
+        let arrow = value > 0 ? "▲" : value < 0 ? "▼" : "•"
+        let sign = value > 0 ? "+" : ""
+        return HStack(spacing: 7) {
+            MicroLabel("vs last swing", color: .ink45)
+            Text("\(arrow) \(sign)\(value)")
+                .font(Type.ui(11, .bold))
+                .foregroundStyle(color)
         }
     }
+
+    // MARK: goals
 
     @ViewBuilder
     private var goals: some View {
