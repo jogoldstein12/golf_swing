@@ -21,7 +21,8 @@ enum MetricsBuilder {
 
     static func metrics(_ input: Inputs) -> [MetricValue] {
         var out: [MetricValue] = []
-        let measured = metricQuality(input)
+        let quality = reportQuality(input)
+        let measured = metricQuality(quality)
         let planeQuality = MeasurementQuality(
             confidence: input.plane.basis == nil ? 0 : measured.confidence,
             coverage: input.plane.basis == nil ? 0 : measured.coverage,
@@ -106,7 +107,54 @@ enum MetricsBuilder {
                                    ideal: 35...50, display: 0...75, higherIsBetter: true,
                                    quality: measured))
         }
-        return out
+        return degradeForOrientation(out, orientationConfidence: quality.orientationConfidence)
+    }
+
+    // MARK: - A2: orientation-aware per-metric provenance
+
+    /// Metrics whose value is derived from the 3D body-orientation (yaw) stream. Turn,
+    /// X-factor, and plane deviation lean on it; tempo, posture, and the translational
+    /// DOF do not. When the yaw stream is weak through the swing these degrade
+    /// INDIVIDUALLY — not the whole report — so an honest read still surfaces the
+    /// metrics that don't depend on orientation.
+    static let orientationDependentMetrics: Set<String> =
+        ["Swing Plane", "Shoulder Turn", "Hip Turn", "X-Factor at Transition"]
+
+    /// Below this fraction of trusted-orientation frames a dependent metric can no
+    /// longer be called `.measured` — it becomes an `.inferred` estimate shown with a
+    /// caveat. Chosen above the `.score` orientation gate (0.35) so metrics degrade to
+    /// "estimate" before the whole report tips to insufficient. Documented in
+    /// docs/VALIDATION.md.
+    static let orientationInferredThreshold = 0.60
+    /// Below this the dependent metric is withheld entirely (`.unavailable`).
+    static let orientationWithheldThreshold = 0.35
+
+    /// A2: degrade orientation-dependent metrics when the yaw stream is weak. Pure over
+    /// the metric list; never touches orientation-independent metrics, never edits the
+    /// value. Above `orientationInferredThreshold` this is a no-op.
+    static func degradeForOrientation(_ metrics: [MetricValue],
+                                      orientationConfidence: Double) -> [MetricValue] {
+        guard orientationConfidence < orientationInferredThreshold else { return metrics }
+        let withhold = orientationConfidence < orientationWithheldThreshold
+        return metrics.map { metric in
+            guard orientationDependentMetrics.contains(metric.label) else { return metric }
+            let base = metric.quality
+                ?? MeasurementQuality(confidence: 0, coverage: 0, provenance: .measured)
+            // Only degrade a genuinely measured value — never upgrade one already
+            // withheld upstream (e.g. plane with no basis is already `.unavailable`).
+            guard base.provenance == .measured else { return metric }
+            var metric = metric
+            let caveat = withhold
+                ? "\(metric.label) depends on 3D body rotation, which was too unsteady through this swing to measure reliably; it was withheld."
+                : "\(metric.label) depends on 3D body rotation, which was only partly trusted through this swing; treat it as an estimate."
+            metric.quality = MeasurementQuality(
+                confidence: withhold ? min(base.confidence, 0.15) : min(base.confidence, 0.5),
+                coverage: base.coverage,
+                provenance: withhold ? .unavailable : .inferred,
+                warnings: base.warnings + [caveat]
+            )
+            return metric
+        }
     }
 
     // MARK: - Score
@@ -120,7 +168,10 @@ enum MetricsBuilder {
             return max(0, 1 - distance / halfWidth)
         }
         func metricScore(_ label: String) -> Double? {
-            guard let m = metrics.first(where: { $0.label == label }) else { return nil }
+            guard let m = metrics.first(where: { $0.label == label }),
+                  // A1/A2: a withheld metric (implausible, or orientation too weak to
+                  // trust) is not evidence — it must not contribute to the score.
+                  m.quality?.provenance != .unavailable else { return nil }
             return bandScore(m.value, m.idealLow, m.idealHigh)
         }
 
@@ -165,9 +216,14 @@ enum MetricsBuilder {
             )
         }
         let total = components.reduce(0.0) { $0 + $1.score * $1.weight }
+        // A1's "missing link": the score gate now also reads orientation confidence.
+        // PlausibilityGate collapses it (to ~0.15) when the 3D-rotation family produces
+        // anatomically impossible values, so a high-coverage report full of degenerate
+        // yaw — the A0 case — can no longer resolve to a confident total.
         let sufficient = quality.twoDCoverage >= 0.65
             && quality.threeDCoverage >= 0.50
             && quality.checkpointConfidence >= 0.80
+            && quality.orientationConfidence >= 0.35
             && components.count >= 3
         return SwingScore(
             total: Int((total * 100).rounded()),
@@ -195,6 +251,9 @@ enum MetricsBuilder {
         if twoD < 0.65 { warnings.append("Parts of the golfer were not visible consistently.") }
         if threeD < 0.50 { warnings.append("Depth measurements had limited coverage.") }
         if checkpoint < 0.80 { warnings.append("Several swing checkpoints were uncertain.") }
+        if orientation < orientationInferredThreshold {
+            warnings.append("3D body rotation was only partly trusted; turn, X-factor, and plane are shown with reduced confidence.")
+        }
         if input.view != .faceOn, input.plane.basis == nil {
             warnings.append("The shaft or ball was not clear enough to establish swing plane.")
         }
@@ -208,8 +267,7 @@ enum MetricsBuilder {
         )
     }
 
-    private static func metricQuality(_ input: Inputs) -> MeasurementQuality {
-        let quality = reportQuality(input)
+    private static func metricQuality(_ quality: ReportQuality) -> MeasurementQuality {
         return MeasurementQuality(
             confidence: min(quality.twoDCoverage, quality.threeDCoverage),
             coverage: min(quality.twoDCoverage, quality.threeDCoverage),

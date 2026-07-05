@@ -181,8 +181,14 @@ public enum SwingAnalyzer {
                     pelvisDOF: measurements.0.pelvis, chestDOF: measurements.0.chest,
                     sequence: measurements.1
                 )
-                let quality = MetricsBuilder.reportQuality(inputs)
-                let metrics = MetricsBuilder.metrics(inputs)
+                let baseQuality = MetricsBuilder.reportQuality(inputs)
+                let baseMetrics = MetricsBuilder.metrics(inputs)
+                // A1: withhold anatomically impossible measurements and, when the
+                // 3D-rotation family is degenerate, collapse orientation confidence so
+                // the score gate below responds (the A0 fix).
+                let gated = PlausibilityGate.apply(metrics: baseMetrics, quality: baseQuality)
+                let quality = gated.quality
+                let metrics = gated.metrics
                 let score = MetricsBuilder.score(inputs, metrics: metrics, quality: quality)
                 let markers = MetricsBuilder.markers(inputs)
                 return SwingReport(
