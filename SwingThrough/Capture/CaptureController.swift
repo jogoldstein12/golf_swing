@@ -48,6 +48,8 @@ final class CaptureController: ObservableObject {
     private let detector = SwingDetector()
     private var cueExpiry: Date?
     private var countdownTask: Task<Void, Never>?
+    private var exportTask: Task<Void, Never>?
+    private var exportGeneration = 0
     private var manualPending = false
 
     // MARK: - Lifecycle
@@ -208,14 +210,18 @@ final class CaptureController: ObservableObject {
     private func handle(_ event: SwingDetector.Event, at sample: LivePoseSample) {
         switch event {
         case .recordStart:
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             feed?.beginTake()
         case .recordCancel:
             feed?.cancelTake()
-        case .armed, .triggered:
-            break
+        case .armed:
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        case .triggered:
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
         case .disarmed(let reason):
             transientCue(for: reason)
         case .captured(let from, let to):
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
             finishCapture(trimFrom: from, trimTo: to)
         }
     }
@@ -223,20 +229,30 @@ final class CaptureController: ObservableObject {
     private func finishCapture(trimFrom: Double, trimTo: Double) {
         guard let feed else { return }
         exporting = true
+        exportTask?.cancel()
+        exportGeneration += 1
+        let generation = exportGeneration
         let takeAngle = angle
         let fps = feed.info.fps
-        Task {
+        exportTask = Task {
             do {
                 let url = try await feed.finishTake(fromSource: trimFrom, toSource: trimTo)
+                guard !Task.isCancelled, generation == self.exportGeneration else {
+                    try? FileManager.default.removeItem(at: url)
+                    return
+                }
                 let duration = (try? await AVURLAsset(url: url).load(.duration).seconds)
                     ?? (trimTo - trimFrom)
                 let take = CaptureTake(url: url, view: takeAngle,
                                        fps: fps, duration: duration)
+                self.exportTask = nil
                 self.exporting = false
                 withAnimation(.spring(response: 0.55, dampingFraction: 0.86)) {
                     self.screen = .review(take)
                 }
             } catch {
+                guard generation == self.exportGeneration else { return }
+                self.exportTask = nil
                 self.exporting = false
                 self.cue = "Couldn't save that one — set up and swing again."
                 self.cueExpiry = Date().addingTimeInterval(3)
@@ -255,6 +271,17 @@ final class CaptureController: ObservableObject {
             screen = .live
         }
         resetToIdle()
+    }
+
+    func discardUnacceptedTake() {
+        exportGeneration += 1
+        exportTask?.cancel()
+        exportTask = nil
+        exporting = false
+        if case .review(let take) = screen {
+            try? FileManager.default.removeItem(at: take.url)
+            screen = .live
+        }
     }
 
     func accept(onCaptured: (URL, CaptureView) -> Void) {
@@ -277,6 +304,7 @@ final class CaptureController: ObservableObject {
         resetToIdle()
         countdownTask = Task {
             for n in [3, 2, 1] {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     self.countdown = n
                 }

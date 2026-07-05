@@ -38,7 +38,8 @@ enum SwingPlaneAnalyzer {
     }
 
     static func analyze(frames: [PoseFrame], timing: SwingTiming, view: CaptureView,
-                        videoURL: URL, options: Options = .init()) async -> PlaneAnalysis {
+                        videoURL: URL, options: Options = .init()) async throws -> PlaneAnalysis {
+        try Task.checkCancellation()
         let unavailable = PlaneAnalysis(basePlaneAngle: 0, deviationByPosition: [:], stateByPosition: [:])
         guard view == .downTheLine else { return unavailable } // faceOn: honestly empty, never neutral-faked
 
@@ -52,11 +53,20 @@ enum SwingPlaneAnalyzer {
         var bestShaft: (ground: CGPoint, upper: CGPoint, contrast: Double)?
         var bestSize: (w: Double, h: Double)?
         for offset in options.attemptOffsets {
+            try Task.checkCancellation()
             let t = max(0, p1.time + offset)
             guard let idx = nearestFrameIndex(frames, to: t) else { continue }
             let frame = frames[idx]
             guard let grip2 = frame.grip2, let groundY = groundY(of: frame) else { continue }
-            guard let image = try? await FrameImage.cgImage(from: videoURL, at: t) else { continue }
+            let image: CGImage
+            do {
+                image = try await FrameImage.cgImage(from: videoURL, at: t)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                try Task.checkCancellation()
+                continue
+            }
             if let shaft = ShaftDetector.detectShaft(image: image, grip2: grip2, groundY2: groundY),
                shaft.contrast > (bestShaft?.contrast ?? 0) {
                 bestShaft = shaft
@@ -72,8 +82,16 @@ enum SwingPlaneAnalyzer {
         // --- fallback: grip -> ball line ---
         if line2D == nil {
             let addressFrame = frames[p1.frameIndex]
-            if let grip2 = addressFrame.grip2, let gY = groundY(of: addressFrame),
-               let image = try? await FrameImage.cgImage(from: videoURL, at: p1.time) {
+            if let grip2 = addressFrame.grip2, let gY = groundY(of: addressFrame) {
+                let image: CGImage
+                do {
+                    image = try await FrameImage.cgImage(from: videoURL, at: p1.time)
+                } catch is CancellationError {
+                    throw CancellationError()
+                } catch {
+                    try Task.checkCancellation()
+                    return unavailable
+                }
                 let w = Double(image.width), h = Double(image.height)
                 // The ball sits forward of the body: search around the address grip's
                 // x pushed further out along the hip-center -> grip direction, at
@@ -102,6 +120,7 @@ enum SwingPlaneAnalyzer {
         var states: [SwingPosition: PlaneState] = [:]
         let anchor = line[0] // ground/ball end of the base line
         for pos in [SwingPosition.p5, .p6] {
+            try Task.checkCancellation()
             guard let mark = timing.checkpoints.first(where: { $0.position == pos }),
                   mark.frameIndex < frames.count,
                   let grip = frames[mark.frameIndex].grip2 else { continue }
@@ -127,6 +146,7 @@ enum SwingPlaneAnalyzer {
             }
         }
 
+        try Task.checkCancellation()
         let shift3D = PlaneShift3D.compute(frames: frames, timing: timing)
         return PlaneAnalysis(basePlaneAngle: baseAngle, deviationByPosition: deviations,
                              stateByPosition: states, basePlaneLine2D: line, basis: basisUsed,

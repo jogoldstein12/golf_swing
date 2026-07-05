@@ -59,6 +59,16 @@ targets:
     dependencies:
       - target: SwingThrough
 
+  SwingThroughTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [SwingThroughTests]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+    dependencies:
+      - target: SwingThrough
+
 schemes:
   SwingThrough:
     build:
@@ -69,4 +79,5 @@ schemes:
     test:
       config: Debug
       targets:
+        - SwingThroughTests
         - SwingThroughUITests

@@ -117,6 +117,7 @@ final class SwingDetector {
     private var runLowSince: Double?
     private let runQuietReset = 0.4
     private var captureStart: Double?
+    private var manualAwaitingMotion = false
     private var settleSince: (t: Double, source: Double)?
     private var uprightSince: Double?
     private var walkSince: Double?
@@ -131,19 +132,21 @@ final class SwingDetector {
         stillSince = nil; recordArmed = false; armedAt = nil
         fastStreak = 0; triggerSource = nil; runStartSource = nil; runLowSince = nil
         captureStart = nil; settleSince = nil
+        manualAwaitingMotion = false
         uprightSince = nil; walkSince = nil; quietSince = nil
         checklistRedSince = nil; gripSeenAt = -.infinity
         centerX = nil; gripSpeed = 0
     }
 
-    /// Manual fallback (countdown record): jump straight to capturing. The trim starts
-    /// at `sourceTime`; the swing-then-settle logic still ends it, with the 12s cap as
-    /// the guardrail. Caller must have issued beginTake.
+    /// Manual fallback (countdown record): retain immediately, but do not allow the
+    /// settle detector to finish until real swing motion has occurred. This prevents
+    /// a pre-shot pause from producing a short, swing-less clip.
     func beginManualCapture(input: Input) -> [Event] {
         reset()
         recordArmed = true
         triggerSource = input.sourceTime + config.preRoll   // trimFrom = sourceTime
         captureStart = input.time
+        manualAwaitingMotion = true
         phase = .capturing
         return [.triggered]
     }
@@ -331,6 +334,16 @@ final class SwingDetector {
     }
 
     private func stepCapturing(_ input: Input) -> [Event] {
+        if manualAwaitingMotion {
+            if let start = captureStart, input.time - start > config.maxCapture {
+                reset()
+                return [.recordCancel, .disarmed(.timeout)]
+            }
+            if gripSpeed >= config.triggerSpeed {
+                manualAwaitingMotion = false
+            }
+            return []
+        }
         if let start = captureStart, input.time - start > config.maxCapture {
             return finish(at: input)
         }

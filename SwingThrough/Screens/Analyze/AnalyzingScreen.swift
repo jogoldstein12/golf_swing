@@ -6,6 +6,10 @@ import SwiftUI
 struct AnalyzingScreen: View {
     var progress: Double            // 0…1 from the analyzer
     var phase: String               // "Reading motion", "Measuring the plane", …
+    var isCancelling = false
+    var onCancel: () -> Void = {}
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
@@ -13,7 +17,8 @@ struct AnalyzingScreen: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                TimelineView(.animation) { context in
+                TimelineView(.animation(minimumInterval: 1.0 / 30.0,
+                                        paused: reduceMotion || isCancelling)) { context in
                     Canvas { ctx, size in
                         let t = context.date.timeIntervalSinceReferenceDate
                         let cx = size.width / 2, cy = size.height / 2
@@ -62,7 +67,7 @@ struct AnalyzingScreen: View {
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.ink08).frame(height: 2)
                         Capsule().fill(Color.fairwayDeep)
-                            .frame(width: max(4, geo.size.width * progress), height: 2)
+                            .frame(width: max(4, geo.size.width * min(1, max(0, progress))), height: 2)
                             .animation(.easeOut(duration: 0.4), value: progress)
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
@@ -73,7 +78,20 @@ struct AnalyzingScreen: View {
 
                 Spacer()
 
-                Text("Everything is measured on this phone.")
+                Button(action: onCancel) {
+                    HStack(spacing: 8) {
+                        if isCancelling { ProgressView().controlSize(.small) }
+                        MicroLabel(isCancelling ? "Canceling…" : "Cancel analysis", color: .ink45)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(isCancelling)
+                .accessibilityIdentifier("cancelAnalysis")
+
+                Text("Your video stays saved so you can retry later.")
                     .font(Type.displayItalic(15))
                     .foregroundStyle(Color.ink25)
                     .padding(.bottom, 36)

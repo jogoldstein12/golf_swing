@@ -35,4 +35,18 @@ final class ContractTests: XCTestCase {
         XCTAssertTrue(m.inBand)
         XCTAssertEqual(m.fill, (3.1 - 1.5) / 3.0, accuracy: 1e-9)
     }
+
+    func testBinaryFrameLookupChoosesNearestTimestamp() {
+        let report = SwingReport(
+            club: "Test", view: .faceOn, duration: 1, frameRate: 30,
+            frames: [.init(time: 0.1), .init(time: 0.4), .init(time: 0.9)],
+            checkpoints: [],
+            plane: .init(basePlaneAngle: 0, deviationByPosition: [:], stateByPosition: [:]),
+            sequence: .init(peaks: []), pelvisDOF: [:], chestDOF: [:],
+            metrics: [], markers: [], score: .init(total: 0, components: [])
+        )
+        XCTAssertEqual(report.frame(at: 0.32)?.time, 0.4)
+        XCTAssertEqual(report.frame(at: -1)?.time, 0.1)
+        XCTAssertEqual(report.frame(at: 2)?.time, 0.9)
+    }
 }

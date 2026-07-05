@@ -56,7 +56,10 @@ struct CaptureScreen: View {
             controller.start()
             runDemoScript()
         }
-        .onDisappear { controller.stopFeed() }
+        .onDisappear {
+            controller.discardUnacceptedTake()
+            controller.stopFeed()
+        }
         .onChange(of: scenePhase) { _, phase in
             // Returning from Settings after granting camera access should recover
             // without requiring the user to dismiss and reopen capture.

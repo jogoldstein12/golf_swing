@@ -19,7 +19,7 @@ enum AnalysisPane: String, CaseIterable, Identifiable {
 
 @Observable
 final class AnalysisModel {
-    let report: SwingReport
+    var report: SwingReport
     let videoURL: URL
     let videoSize: CGSize
     let player: AVPlayer
@@ -51,7 +51,7 @@ final class AnalysisModel {
         player.automaticallyWaitsToMinimizeStalling = false
 
         let ballY = report.plane.basePlaneLine2D?.first?.y
-        framing = report.frames.compactMap { f in
+        let rawFraming = report.frames.compactMap { f -> FramingSample? in
             var lo = Double.infinity, hi = -Double.infinity
             for (j, p) in f.j2 where (f.confidence[j] ?? 1) > 0.35 {
                 lo = Swift.min(lo, p.y)
@@ -61,6 +61,18 @@ final class AnalysisModel {
             if let ballY { hi = Swift.max(hi, ballY) }
             return FramingSample(time: f.time, top: lo - 0.035, bottom: hi + 0.025,
                                  gripY: f.grip2?.y)
+        }
+        framing = rawFraming.indices.map { index in
+            let sample = rawFraming[index]
+            let nearby = rawFraming.filter { abs($0.time - sample.time) <= 0.35 }
+            let denominator = Double(max(1, nearby.count))
+            let grips = nearby.compactMap(\.gripY)
+            return FramingSample(
+                time: sample.time,
+                top: nearby.reduce(0) { $0 + $1.top } / denominator,
+                bottom: nearby.reduce(0) { $0 + $1.bottom } / denominator,
+                gripY: grips.isEmpty ? nil : grips.reduce(0, +) / Double(grips.count)
+            )
         }
 
         // Dev hooks: ST_POS=p4 jumps to a checkpoint; ST_PANE=avatar|split picks a pane.
@@ -94,7 +106,7 @@ final class AnalysisModel {
         }
 
         timeObserver = player.addPeriodicTimeObserver(
-            forInterval: CMTime(value: 1, timescale: 60), queue: .main
+            forInterval: CMTime(value: 1, timescale: 30), queue: .main
         ) { [weak self] t in
             guard let self, self.isPlaying else { return }
             self.time = t.seconds
@@ -107,6 +119,11 @@ final class AnalysisModel {
 
     deinit {
         if let timeObserver { player.removeTimeObserver(timeObserver) }
+    }
+
+    func applyEnhancedCoaching(_ plan: CoachingPlan) {
+        guard plan.source == .claude else { return }
+        report.coaching = plan
     }
 
     var currentFrame: PoseFrame? { report.frame(at: time) }
@@ -124,13 +141,20 @@ final class AnalysisModel {
             if let g = s.gripY, g >= (s.top + s.bottom) / 2 { return s.bottom - visible }
             return s.top
         }
-        let windowed = framing.filter { abs($0.time - time) <= 0.35 }
-        guard !windowed.isEmpty else {
-            var nearest = framing[0]
-            for s in framing where abs(s.time - time) < abs(nearest.time - time) { nearest = s }
-            return ruleTop(nearest)
+        var low = 0
+        var high = framing.count
+        while low < high {
+            let middle = low + (high - low) / 2
+            if framing[middle].time < time { low = middle + 1 } else { high = middle }
         }
-        return windowed.map(ruleTop).reduce(0, +) / Double(windowed.count)
+        let index: Int
+        if low == 0 { index = 0 }
+        else if low == framing.count { index = framing.count - 1 }
+        else {
+            index = abs(framing[low - 1].time - time) <= abs(framing[low].time - time)
+                ? low - 1 : low
+        }
+        return ruleTop(framing[index])
     }
 
     var headline: [SwingPosition] {

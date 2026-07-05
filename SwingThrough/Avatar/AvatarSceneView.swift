@@ -1,7 +1,7 @@
 // The SceneKit host: builds the scene once (figure, ghost figure, lights, camera
-// rig) and drives it every frame. Scrubbing is instant (`updateUIView` re-applies
-// the pose synchronously); playback advances through `SCNSceneRendererDelegate`,
-// per-frame, writing the new time back through the binding.
+// rig) and applies the AVPlayer-owned timeline. Scrubbing is instant
+// (`updateUIView` re-applies the pose synchronously); SceneKit never owns a second
+// playback clock.
 import SceneKit
 import SwiftUI
 import SwingKit
@@ -38,8 +38,9 @@ struct AvatarSceneView: UIViewRepresentable {
         let view = AvatarHostView(frame: .zero)
         view.backgroundColor = .clear
         view.isOpaque = false
-        view.antialiasingMode = .multisampling4X
-        view.rendersContinuously = true
+        view.antialiasingMode = .multisampling2X
+        view.preferredFramesPerSecond = ProcessInfo.processInfo.thermalState.rawValue >= 2 ? 20 : 30
+        view.rendersContinuously = false
         view.scene = SCNScene()
         view.delegate = context.coordinator
 
@@ -61,6 +62,8 @@ struct AvatarSceneView: UIViewRepresentable {
 
     func updateUIView(_ view: SCNView, context: Context) {
         push(context: context)
+        view.rendersContinuously = isPlaying
+        view.setNeedsDisplay()
     }
 
     private func push(context: Context) {
@@ -187,10 +190,10 @@ struct AvatarSceneView: UIViewRepresentable {
             panRecognizer?.isEnabled = orbitEnabled
             pinchRecognizer?.isEnabled = orbitEnabled
 
-            if !isPlaying, abs(time - currentTime) > 0.0004 {
+            if abs(time - currentTime) > 0.0004 {
                 currentTime = time
                 applyPose(at: time)
-            } else if !isPlaying {
+            } else {
                 currentTime = time
             }
             isPlayingFlag = isPlaying
@@ -406,18 +409,11 @@ struct AvatarSceneView: UIViewRepresentable {
             root.addChildNode(ambientNode)
         }
 
-        // MARK: SCNSceneRendererDelegate — the playback clock
+        // MARK: SCNSceneRendererDelegate
 
         func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-            defer { lastRenderTime = time }
-            guard let last = lastRenderTime else { return }
-            let dt = time - last
-            guard isPlayingFlag, dt > 0, dt < 0.5, let track else { return }
-            let next = min(currentTime + dt, track.endTime)
-            currentTime = next
-            applyPose(at: next)
-            let binding = timeBinding
-            DispatchQueue.main.async { binding.wrappedValue = next }
+            // AVPlayer's periodic observer is the only playback clock. Rendering
+            // remains continuous only while visible and playing.
         }
     }
 }

@@ -11,14 +11,14 @@ public struct ClaudeCoach: CoachingEngine {
     public var session: URLSession
     public var timeout: TimeInterval
 
-    private static let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
+    private static let endpointString = "https://api.anthropic.com/v1/messages"
     private static let anthropicVersion = "2023-06-01"
     private static let toolName = "emit_coaching_plan"
 
     public init(apiKeyProvider: APIKeyProvider = EnvironmentAPIKeyProvider(),
                 model: String = "claude-opus-4-8",
                 session: URLSession = .shared,
-                timeout: TimeInterval = 15) {
+                timeout: TimeInterval = 8) {
         self.apiKeyProvider = apiKeyProvider
         self.model = model
         self.session = session
@@ -42,7 +42,10 @@ public struct ClaudeCoach: CoachingEngine {
             throw CoachingError.malformedResponse("failed to build request body: \(error)")
         }
 
-        var request = URLRequest(url: Self.endpoint)
+        guard let endpoint = URL(string: Self.endpointString) else {
+            throw CoachingError.network("invalid service endpoint")
+        }
+        var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -50,34 +53,28 @@ public struct ClaudeCoach: CoachingEngine {
         request.setValue(Self.anthropicVersion, forHTTPHeaderField: "anthropic-version")
         request.httpBody = body
 
-        let data = try await send(request, attempt: 1)
+        let data = try await send(request)
         return try Self.parsePlan(from: data)
     }
 
-    // MARK: - Networking (timeout + single retry on 5xx/429)
+    // MARK: - Networking
 
-    private func send(_ request: URLRequest, attempt: Int) async throws -> Data {
+    private func send(_ request: URLRequest) async throws -> Data {
         let data: Data
         let response: URLResponse
         do {
             (data, response) = try await session.data(for: request)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
-            if attempt == 1 {
-                try? await Task.sleep(nanoseconds: 500_000_000)
-                return try await send(request, attempt: 2)
-            }
-            // Never log the key or the full request — only the failure kind.
-            throw CoachingError.network("request failed after retry")
+            try Task.checkCancellation()
+            throw CoachingError.network("request failed")
         }
 
         guard let http = response as? HTTPURLResponse else {
             throw CoachingError.malformedResponse("no HTTP response")
         }
         if (200..<300).contains(http.statusCode) { return data }
-        if (http.statusCode == 429 || http.statusCode >= 500), attempt == 1 {
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            return try await send(request, attempt: 2)
-        }
         throw CoachingError.httpStatus(http.statusCode)
     }
 
@@ -123,7 +120,7 @@ public struct ClaudeCoach: CoachingEngine {
 
         let body: [String: Any] = [
             "model": model,
-            "max_tokens": 4096,
+            "max_tokens": 1200,
             "system": systemPrompt,
             "tools": [tool],
             "tool_choice": ["type": "tool", "name": toolName],

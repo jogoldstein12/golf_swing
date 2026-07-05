@@ -26,11 +26,14 @@ private struct ImportedSwingVideo: Transferable {
 
 struct HomeScreen: View {
     @Query(sort: \SwingRecord.date, order: .reverse) private var swings: [SwingRecord]
+    @Query(sort: \AnalysisJobRecord.updatedAt, order: .reverse) private var analysisJobs: [AnalysisJobRecord]
     @Environment(\.modelContext) private var context
     var onRecord: () -> Void = {}
     var onImport: (URL) -> Void = { _ in }
     var onOpen: (SwingRecord) -> Void = { _ in }
     var onDrills: () -> Void = {}
+    var onRetryDraft: (UUID) -> Void = { _ in }
+    var onDiscardDraft: (UUID) -> Void = { _ in }
 
     var body: some View {
         ZStack {
@@ -40,6 +43,10 @@ struct HomeScreen: View {
                     header
 
                     heading.padding(.top, 36)
+
+                    if !analysisJobs.isEmpty {
+                        draftList.padding(.top, 22)
+                    }
 
                     if swings.isEmpty {
                         emptyState.padding(.top, 24)
@@ -68,6 +75,16 @@ struct HomeScreen: View {
         } message: {
             Text("Choose a video that is stored on this iPhone or available to download from iCloud.")
         }
+        .confirmationDialog(
+            "Delete this swing?",
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete video and report", role: .destructive) { deletePendingSwing() }
+            Button("Cancel", role: .cancel) { pendingDeleteID = nil }
+        } message: {
+            Text("This permanently removes the saved analysis from this iPhone.")
+        }
     }
 
     @State private var showSettings = false
@@ -75,6 +92,15 @@ struct HomeScreen: View {
     @State private var importingVideo = false
     @State private var showImportError = false
     @State private var sampleUnavailable = false
+    @State private var pendingDeleteID: UUID?
+    @State private var showDeleteConfirmation = false
+
+    private static let editableClubs = [
+        "Driver", "3 Wood", "5 Wood", "Hybrid", "5 Iron", "6 Iron", "7 Iron",
+        "8 Iron", "9 Iron", "Pitching Wedge", "Gap Wedge", "Sand Wedge", "Lob Wedge"
+    ]
+
+    private var scoredSwings: [SwingRecord] { swings.filter { $0.score >= 0 } }
 
     private var header: some View {
         HStack {
@@ -110,7 +136,7 @@ struct HomeScreen: View {
     }
 
     private var headline: some View {
-        let latest = swings.first?.score
+        let latest = scoredSwings.first?.score
         return HStack(alignment: .firstTextBaseline, spacing: 10) {
             if let latest {
                 Text("\(latest)")
@@ -128,8 +154,8 @@ struct HomeScreen: View {
     }
 
     private var trendText: String {
-        guard swings.count >= 2 else { return "your latest score" }
-        let delta = swings[0].score - swings[1].score
+        guard scoredSwings.count >= 2 else { return "your latest score" }
+        let delta = scoredSwings[0].score - scoredSwings[1].score
         if delta > 0 { return "up \(delta) from last swing" }
         if delta < 0 { return "down \(-delta) from last swing" }
         return "level with last swing"
@@ -145,13 +171,29 @@ struct HomeScreen: View {
                     Spacer()
                     MicroLabel("Last \(min(swings.count, 12))", color: .ink25)
                 }
-                TrendChart(scores: swings.prefix(12).reversed().map(\.score))
+                TrendChart(scores: scoredSwings.prefix(12).reversed().map(\.score))
                     .frame(height: 88)
             }
         }
     }
 
     // MARK: - List
+
+    private var draftList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            MicroLabel("Saved analyses")
+                .padding(.bottom, 6)
+            ForEach(Array(analysisJobs.enumerated()), id: \.element.id) { index, job in
+                if index > 0 { Hairline() }
+                AnalysisDraftRow(
+                    job: job,
+                    canRetry: SwingStore.videoExists(named: job.videoFileName),
+                    onRetry: { onRetryDraft(job.id) },
+                    onDiscard: { onDiscardDraft(job.id) }
+                )
+            }
+        }
+    }
 
     private var swingList: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -165,6 +207,21 @@ struct HomeScreen: View {
                 Button { onOpen(s) } label: { SwingRow(record: s) }
                     .buttonStyle(PressScaleStyle())
                     .accessibilityIdentifier("swingRow")
+                    .contextMenu {
+                        Menu("Correct club") {
+                            ForEach(Self.editableClubs, id: \.self) { club in
+                                Button(club) { update(s, club: club) }
+                            }
+                        }
+                        Menu("Correct camera angle") {
+                            Button("Down the line") { update(s, view: .downTheLine) }
+                            Button("Face on") { update(s, view: .faceOn) }
+                        }
+                        Button("Delete swing", role: .destructive) {
+                            pendingDeleteID = s.id
+                            showDeleteConfirmation = true
+                        }
+                    }
             }
         }
     }
@@ -263,6 +320,72 @@ struct HomeScreen: View {
         )
         context.insert(record)
     }
+
+    private func update(_ record: SwingRecord, club: String? = nil,
+                        view: CaptureView? = nil) {
+        if let club { record.club = club }
+        if let view { record.viewRaw = view.rawValue }
+        if !record.isSample,
+           var report = SwingStore.loadReport(named: record.reportFileName) {
+            if let club { report.club = club }
+            if let view { report.view = view }
+            _ = try? SwingStore.saveReport(report)
+        }
+        try? context.save()
+    }
+
+    private func deletePendingSwing() {
+        guard let id = pendingDeleteID,
+              let record = swings.first(where: { $0.id == id }) else { return }
+        if let video = record.videoFileName { try? SwingStore.removeVideo(named: video) }
+        if !record.reportFileName.isEmpty {
+            try? SwingStore.removeReport(named: record.reportFileName)
+        }
+        try? SwingStore.removeJobFiles(jobID: record.id)
+        context.delete(record)
+        try? context.save()
+        pendingDeleteID = nil
+    }
+}
+
+private struct AnalysisDraftRow: View {
+    let job: AnalysisJobRecord
+    let canRetry: Bool
+    let onRetry: () -> Void
+    let onDiscard: () -> Void
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Button(action: onRetry) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(job.draft.statusLabel)
+                        .font(Type.display(19))
+                        .foregroundStyle(job.stage == .failed ? Color.brickText : Color.ink)
+                    MicroLabel(
+                        canRetry
+                            ? "\(job.club) · tap to retry"
+                            : "Video unavailable",
+                        color: .ink45,
+                        size: 9
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!canRetry)
+            .accessibilityIdentifier("analysisDraft")
+
+            Button(action: onDiscard) {
+                MicroLabel("Discard", color: .brickText, size: 8.5)
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Discard saved analysis")
+        }
+        .padding(.vertical, 14)
+    }
 }
 
 // MARK: - Trend chart (custom Canvas — thin editorial line, fairway on the latest)
@@ -339,13 +462,17 @@ struct SwingRow: View {
                            color: .ink45, size: 9)
             }
             Spacer()
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text("\(record.score)")
-                    .font(Type.display(28))
-                    .foregroundStyle(Color.ink)
-                Text("/100")
-                    .font(Type.display(13))
-                    .foregroundStyle(Color.ink25)
+            if record.score >= 0 {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text("\(record.score)")
+                        .font(Type.display(28))
+                        .foregroundStyle(Color.ink)
+                    Text("/100")
+                        .font(Type.display(13))
+                        .foregroundStyle(Color.ink25)
+                }
+            } else {
+                MicroLabel("Limited data", color: .ink45, size: 9)
             }
             ChevronGlyph()
                 .stroke(Color.ink25, style: .init(lineWidth: 1.6, lineCap: .round, lineJoin: .round))

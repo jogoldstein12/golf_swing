@@ -7,15 +7,26 @@ struct SwingThroughApp: App {
     private let persistenceWarning: String?
 
     init() {
+        MetricKitMonitor.shared.start()
+        let schema = Schema(versionedSchema: SwingThroughSchemaV2.self)
         do {
-            modelContainer = try ModelContainer(for: SwingRecord.self)
+            let configuration = ModelConfiguration(schema: schema)
+            modelContainer = try ModelContainer(
+                for: schema,
+                migrationPlan: SwingThroughMigrationPlan.self,
+                configurations: configuration
+            )
             persistenceWarning = nil
         } catch {
             // A damaged or incompatible on-device store must not make the app
             // unlaunchable. The in-memory fallback keeps capture/analysis usable and
             // makes the persistence limitation visible in RootView.
-            let fallback = ModelConfiguration(isStoredInMemoryOnly: true)
-            modelContainer = try? ModelContainer(for: SwingRecord.self, configurations: fallback)
+            let fallback = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            modelContainer = try? ModelContainer(
+                for: schema,
+                migrationPlan: SwingThroughMigrationPlan.self,
+                configurations: fallback
+            )
             persistenceWarning = "History could not be opened. Swings will not be saved after this launch."
             NSLog("SwingThrough: persistent store unavailable: %@", error.localizedDescription)
         }

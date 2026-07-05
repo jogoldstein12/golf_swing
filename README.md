@@ -12,8 +12,9 @@ coaches you through what it found, in priority order, grounded in those numbers.
    six degrees of freedom for pelvis & chest, tempo, turn/posture metrics → a `SwingReport`.
    Every number is math on joint positions. When something can't be measured (shaft not
    visible, orientation confidence low), the report says so instead of inventing it.
-2. **Interpretation (words, not measurements).** The structured report goes to Claude
-   (`claude-opus-4-8`) for editorial, quantified coaching — prioritized by the swing
+2. **Interpretation (words, not measurements).** Deterministic coaching renders with
+   the local results first. If configured, the compact structured report then goes to
+   Claude (`claude-opus-4-8`) for optional enhanced coaching — prioritized by the swing
    model's chain: sequence and plane before posture, posture before tempo, tempo before
    cosmetics. No key or no network? A deterministic rule-based coach applies the same
    model with the same priorities. Raw video never leaves the phone.
@@ -31,8 +32,10 @@ coaches you through what it found, in priority order, grounded in those numbers.
   Follow), a full P1–P10 tick timeline with drag scrubbing, and playback.
 - **3D avatar** — a sculpted clay mannequin animated by your actual joint tracks, with
   swing-plane disc and downswing path ribbon, orbit/pinch, and a ghost-compare mode.
-- **Metrics & score** — each metric shown against its ideal band; a 0–100 Swing Score
-  weighted toward sequence (30%) and plane (25%).
+- **Metrics & score** — each metric includes measurement provenance and is shown against
+  its ideal band. The 0–100 Swing Score appears only when pose/checkpoint coverage is
+  sufficient and uses view-appropriate components (face-on swings are not penalized for
+  missing down-the-line plane data).
 - **Goals** — 2–4 coaching goals in priority order, each with current → target and a
   concrete drill.
 - **History & drills** — swing gallery with score trend; a drill library where the
@@ -55,10 +58,11 @@ docs/                SWING_MODEL.md · BUILD_PLAN.md · VALIDATION.md · DESIGN.
 
 ## Build & run
 
-Prereqs: macOS with Xcode 26+, network for the two fetch scripts. No brew, no ffmpeg,
-no CocoaPods/SPM remotes — everything is vendored or fetched by script.
+Prereqs: macOS with Xcode 26+ and network access for first-run dependency fetches. No
+brew, ffmpeg, CocoaPods, or remote Swift packages are required.
 
 ```sh
+./tools/bootstrap_xcodegen.sh     # pinned XcodeGen 2.45.4 (first clone only)
 ./assets/fetch_fonts.sh          # Instrument Serif + Satoshi (kept out of git)
 ./samples/fetch.sh               # real swing clips for validation (optional but recommended)
 tools/bin/xcodegen/bin/xcodegen generate
@@ -72,7 +76,13 @@ xcrun simctl install booted "$DD/Build/Products/Debug-iphonesimulator/SwingThrou
 xcrun simctl launch booted com.swingthrough.SwingThrough
 ```
 
-The Simulator can't run Vision or the camera, so the app ships with a pre-analyzed
+Run the complete local build and package-test sequence with `./tools/verify.sh`. Override
+`SWINGTHROUGH_DESTINATION` or `SWINGTHROUGH_DERIVED_DATA` when needed.
+
+Imported videos are preflighted locally, previewed, and trimmed to a maximum 15-second
+analysis range before work starts. Coarse Vision is capped at 12 fps/720 px and detailed
+2D+3D work at 30 fps/960 px regardless of source FPS; the original remains intact for
+playback. The Simulator can't run Vision or the camera, so the app ships with a pre-analyzed
 sample swing (gallery → "Sample") that exercises every surface. On a device, capture
 and the full measurement pipeline run for real.
 
@@ -89,7 +99,8 @@ footage without a device:
 ```sh
 cd SwingKit && swift build -c release && swift test
 .build/release/swingctl analyze ../samples/dtl_iron_a.mp4 --view dtl \
-    --json /tmp/report.json --annotate /tmp/frames     # skeleton+plane burned onto checkpoint frames
+    --json /tmp/report.json --diagnostics /tmp/diagnostics.json \
+    --annotate /tmp/frames                             # skeleton+plane burned onto checkpoint frames
 .build/release/swingctl coach /tmp/report.json          # rule-based coaching
 .build/release/swingctl coach /tmp/report.json --claude # via API (needs ANTHROPIC_API_KEY)
 ```
@@ -102,7 +113,17 @@ measurement layer.
 
 Never compiled in. Either export `ANTHROPIC_API_KEY` (CLI / `SIMCTL_CHILD_ANTHROPIC_API_KEY`
 for the sim), or add a key in the app's Settings (stored in the Keychain, deletable).
-Only the compact measured-numbers payload is sent; never video or frames.
+Only the compact measured-numbers payload is sent; never video or frames. Enhanced
+coaching runs after local results are visible, uses a single short attempt, and safely
+keeps local coaching on timeout, cancellation, malformed output, or rate limiting.
+
+### Local data and privacy
+
+Videos, reports, job manifests, diagnostics, and API credentials stay in app-owned local
+storage. Cancelled/interrupted analyses retain their source for explicit retry or discard.
+Long-press a history row to correct club/angle or delete that swing; Settings includes a
+confirmed “Delete all local swing data” action. Debug diagnostics contain timings and
+stable categories, never media, pose coordinates, coaching text, or file paths.
 
 ## Design language
 
@@ -119,12 +140,12 @@ verified frame-by-frame from screen recordings (see `SwingThroughUITests/DriveTe
 - **Simulator**: Vision body-pose cannot initialize there — capture dev-mode uses the
   fixture's precomputed tracks; the end-to-end pipeline needs a device or `swingctl`.
 - **Sample footage is 25fps**, so validation tempo/impact timing carries ±40ms
-  quantization (the capture path requests 60fps+ on device, not yet field-tested).
+  quantization (the capture path targets 60fps on device, not yet field-tested).
 - **No club tracking yet** — plane math anchors on the grip (wrist midpoint) path and a
   shaft line detected in the address frame; deviations are grip-path deviations.
-- **Kinematic-sequence order is confidence-gated**: when Vision's body orientation
-  degrades around the top, the report flags low confidence and scoring treats sequence
-  as neutral rather than calling a fault.
+- **Kinematic-sequence order and total score are confidence-gated**: when coverage or
+  body orientation is inadequate, unavailable components are omitted and the app shows
+  a clear limited-data state instead of neutral-filled precision.
 - Real-device testing (camera formats, thresholds against live golfers, thermal/perf)
   hasn't happened yet — everything device-side is structured but sim/CLI-verified only.
 
@@ -135,8 +156,8 @@ verified frame-by-frame from screen recordings (see `SwingThroughUITests/DriveTe
   (`SwingReport.fused` exists in SwingKit; needs the flow + gallery pairing UX).
 - Kinematic-sequence graph on the analysis screen (the per-segment angular-velocity
   series is already in every report).
-- Real-device field pass: 60–120fps capture formats, detector thresholds against live
-  swings, battery/thermal, haptics on capture states.
+- Real-device field pass: verify the fixed 1080p60-class capture profile, detector
+  thresholds against live swings, battery/thermal behavior, and capture haptics.
 - Onboarding: first-run camera-setup walkthrough (height, distance, angle) with the
   live checklist.
 - Share/export: a designed swing card (score, plane callout, one goal) as an image.

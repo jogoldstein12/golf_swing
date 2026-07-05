@@ -90,7 +90,7 @@ final class CoachingPayloadEncoderTests: XCTestCase {
                 .init(label: "Tempo", value: 3.1, unit: ":1", idealLow: 2.7, idealHigh: 3.3, inBand: true),
                 .init(label: "Shoulder Turn", value: 92, unit: "°", idealLow: 85, idealHigh: 100, inBand: true),
             ],
-            score: .init(total: 78, components: [
+            score: .init(total: 78, availability: "available", components: [
                 .init(label: "Sequence", score: 0.95, weight: 0.3),
                 .init(label: "Plane", score: 0.6, weight: 0.3),
             ]),

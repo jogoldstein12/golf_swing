@@ -34,7 +34,7 @@ if args.count >= 2, args[1] == "trim" {
 }
 guard args.count >= 3, args[1] == "extract" else {
     print("usage: swingctl extract <video> [--start s --end s] [--fps n] [--no3d] [--json out] [--annotate dir --every n]")
-    print("       swingctl analyze <video> [--view dtl|faceon] [--json out.json] [--annotate dir]")
+    print("       swingctl analyze <video> [--view dtl|faceon] [--json out.json] [--diagnostics diagnostics.json] [--annotate dir]")
     print("       swingctl trim <video> <out> <start> <end>")
     print("       swingctl coach <report.json> [--skill level] [--claude] [--write]")
     exit(64)

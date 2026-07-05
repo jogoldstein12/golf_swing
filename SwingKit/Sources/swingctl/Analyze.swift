@@ -1,7 +1,8 @@
 // swingctl analyze / trim — the accuracy-validation loop for the full measurement
 // pipeline (as opposed to `extract`, which only exercises stage 1).
 //
-//   swingctl analyze <video> [--view dtl|faceon] [--json out.json] [--annotate dir]
+//   swingctl analyze <video> [--view dtl|faceon] [--json out.json]
+//                    [--diagnostics diagnostics.json] [--annotate dir]
 //   swingctl trim <video> <out> <start> <end>
 import AVFoundation
 import CoreGraphics
@@ -12,7 +13,7 @@ import UniformTypeIdentifiers
 
 func runAnalyze(_ args: [String]) -> Never {
     guard let videoPath = args.first, !videoPath.hasPrefix("--") else {
-        die("usage: swingctl analyze <video> [--view dtl|faceon] [--json out.json] [--annotate dir]")
+        die("usage: swingctl analyze <video> [--view dtl|faceon] [--json out.json] [--diagnostics diagnostics.json] [--annotate dir]")
     }
     func localOpt(_ name: String) -> String? {
         guard let i = args.firstIndex(of: name), i + 1 < args.count else { return nil }
@@ -21,29 +22,49 @@ func runAnalyze(_ args: [String]) -> Never {
     let videoURL = URL(fileURLWithPath: videoPath)
     let view: CaptureView = (localOpt("--view") ?? "dtl") == "faceon" ? .faceOn : .downTheLine
     let jsonPath = localOpt("--json")
+    let diagnosticsPath = localOpt("--diagnostics")
     let annotateDir = localOpt("--annotate")
 
     let sema = DispatchSemaphore(value: 0)
-    var reportResult: Result<SwingReport, Error>?
+    var analysisResult: Result<SwingAnalysisResult, Error>?
     Task {
         do {
-            let report = try await SwingAnalyzer.analyze(url: videoURL, view: view) { p in
-                FileHandle.standardError.write(String(format: "\r%3.0f%%", p * 100).data(using: .utf8)!)
-            }
-            reportResult = .success(report)
+            let result = try await SwingAnalyzer.analyzeWithDiagnostics(
+                url: videoURL,
+                view: view,
+                progress: { p in
+                    let text = String(format: "\r%3.0f%%", p * 100)
+                    if let data = text.data(using: .utf8) {
+                        FileHandle.standardError.write(data)
+                    }
+                }
+            )
+            analysisResult = .success(result)
         } catch {
-            reportResult = .failure(error)
+            analysisResult = .failure(error)
         }
         sema.signal()
     }
     sema.wait()
-    FileHandle.standardError.write("\r".data(using: .utf8)!)
+    if let data = "\r".data(using: .utf8) {
+        FileHandle.standardError.write(data)
+    }
 
-    guard let reportResult else { die("analyze produced no result") }
-    let report: SwingReport
-    switch reportResult {
-    case .failure(let error): die("analyze failed: \(error)")
-    case .success(let r): report = r
+    guard let analysisResult else { die("analyze produced no result") }
+    let result: SwingAnalysisResult
+    switch analysisResult {
+    case .failure(let error):
+        if let diagnosticsPath, let failure = error as? SwingAnalysisFailure {
+            writeDiagnostics(failure.diagnostics, to: diagnosticsPath)
+        }
+        die("analyze failed: \(error.localizedDescription)")
+    case .success(let value):
+        result = value
+    }
+    let report = result.report
+
+    if let diagnosticsPath {
+        writeDiagnostics(result.diagnostics, to: diagnosticsPath)
     }
 
     printAnalysisSummary(report, videoName: videoURL.lastPathComponent)
@@ -63,6 +84,15 @@ func runAnalyze(_ args: [String]) -> Never {
         } catch { die("annotate failed: \(error)") }
     }
     exit(0)
+}
+
+private func writeDiagnostics(_ diagnostics: AnalysisDiagnostics, to path: String) {
+    do {
+        try diagnostics.exportedJSON().write(to: URL(fileURLWithPath: path), options: .atomic)
+        print("\ndiagnostics -> \(path)")
+    } catch {
+        die("failed writing diagnostics json: \(error)")
+    }
 }
 
 func runTrim(_ args: [String]) -> Never {

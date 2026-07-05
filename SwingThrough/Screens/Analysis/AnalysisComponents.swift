@@ -153,6 +153,11 @@ struct MeterRow: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 MicroLabel(m.label)
+                if let provenance = m.quality?.provenance {
+                    Text(provenance.rawValue.capitalized)
+                        .font(Type.ui(9, .medium))
+                        .foregroundStyle(Color.ink45)
+                }
                 Spacer()
                 (Text(trimmed(m.value)).foregroundStyle(Color.ink)
                     + Text(m.unit).font(Type.display(15)).foregroundStyle(Color.ink45))
@@ -192,17 +197,27 @@ struct ScoreBlock: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
                 MicroLabel("Swing Score")
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text("\(score.total)")
-                        .font(Type.display(72))
+                if score.isAvailable {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("\(score.total)")
+                            .font(Type.display(72))
+                            .foregroundStyle(Color.ink)
+                        Text("/100")
+                            .font(Type.display(24))
+                            .foregroundStyle(Color.ink25)
+                    }
+                } else {
+                    Text("Not scored")
+                        .font(Type.display(34))
                         .foregroundStyle(Color.ink)
-                    Text("/100")
-                        .font(Type.display(24))
-                        .foregroundStyle(Color.ink25)
+                    Text("Coverage was too limited for a trustworthy total.")
+                        .font(Type.ui(12.5))
+                        .foregroundStyle(Color.ink70)
+                        .frame(maxWidth: 190, alignment: .leading)
                 }
             }
             Spacer(minLength: 24)
-            if let verdict {
+            if let verdict, score.isAvailable {
                 Text(verdict)
                     .font(Type.displayItalic(19))
                     .foregroundStyle(Color.ink70)

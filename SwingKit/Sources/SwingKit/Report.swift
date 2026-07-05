@@ -36,6 +36,48 @@ public struct CheckpointMark: Codable, Sendable {
 }
 
 /// A measured quantity displayed against its ideal band.
+public enum MeasurementProvenance: String, Codable, Sendable {
+    case measured
+    case interpolated
+    case inferred
+    case unavailable
+}
+
+public struct MeasurementQuality: Codable, Sendable, Equatable {
+    public var confidence: Double
+    public var coverage: Double
+    public var provenance: MeasurementProvenance
+    public var warnings: [String]
+
+    public init(confidence: Double, coverage: Double,
+                provenance: MeasurementProvenance, warnings: [String] = []) {
+        self.confidence = min(1, max(0, confidence))
+        self.coverage = min(1, max(0, coverage))
+        self.provenance = provenance
+        self.warnings = warnings
+    }
+}
+
+public struct ReportQuality: Codable, Sendable, Equatable {
+    public var twoDCoverage: Double
+    public var threeDCoverage: Double
+    public var checkpointConfidence: Double
+    public var orientationConfidence: Double
+    public var planeBasis: PlaneAnalysis.Basis?
+    public var warnings: [String]
+
+    public init(twoDCoverage: Double, threeDCoverage: Double,
+                checkpointConfidence: Double, orientationConfidence: Double,
+                planeBasis: PlaneAnalysis.Basis?, warnings: [String] = []) {
+        self.twoDCoverage = min(1, max(0, twoDCoverage))
+        self.threeDCoverage = min(1, max(0, threeDCoverage))
+        self.checkpointConfidence = min(1, max(0, checkpointConfidence))
+        self.orientationConfidence = min(1, max(0, orientationConfidence))
+        self.planeBasis = planeBasis
+        self.warnings = warnings
+    }
+}
+
 public struct MetricValue: Codable, Sendable {
     public var label: String
     public var value: Double
@@ -45,14 +87,17 @@ public struct MetricValue: Codable, Sendable {
     public var displayLow: Double        // meter range
     public var displayHigh: Double
     public var higherIsBetter: Bool?     // nil = band-centered
+    public var quality: MeasurementQuality?
 
     public init(label: String, value: Double, unit: String,
                 ideal: ClosedRange<Double>, display: ClosedRange<Double>,
-                higherIsBetter: Bool? = nil) {
+                higherIsBetter: Bool? = nil,
+                quality: MeasurementQuality? = nil) {
         self.label = label; self.value = value; self.unit = unit
         self.idealLow = ideal.lowerBound; self.idealHigh = ideal.upperBound
         self.displayLow = display.lowerBound; self.displayHigh = display.upperBound
         self.higherIsBetter = higherIsBetter
+        self.quality = quality
     }
 
     public var inBand: Bool { value >= idealLow && value <= idealHigh }
@@ -180,6 +225,10 @@ public struct SwingMarker: Codable, Identifiable, Sendable {
 }
 
 public struct SwingScore: Codable, Sendable {
+    public enum Availability: String, Codable, Sendable {
+        case available
+        case insufficientData
+    }
     public struct Component: Codable, Sendable {
         public var label: String
         public var score: Double     // 0…1
@@ -190,9 +239,15 @@ public struct SwingScore: Codable, Sendable {
     }
     public var total: Int            // 0…100
     public var components: [Component]
-    public init(total: Int, components: [Component]) {
+    public var availability: Availability?
+    public init(total: Int, components: [Component],
+                availability: Availability? = nil) {
         self.total = total; self.components = components
+        self.availability = availability
     }
+
+    /// nil is a legacy report written before confidence gating and remains visible.
+    public var isAvailable: Bool { availability != .insufficientData }
 }
 
 // MARK: - Coaching (interpretation layer output)
@@ -258,6 +313,8 @@ public struct SwingReport: Codable, Identifiable, Sendable {
     /// Source video pixel dimensions (orientation applied) — overlays need the aspect.
     public var videoWidth: Double?
     public var videoHeight: Double?
+    public var schemaVersion: Int?
+    public var quality: ReportQuality?
 
     public init(id: UUID = UUID(), date: Date = .init(), club: String, view: CaptureView,
                 videoFileName: String? = nil, duration: Double, frameRate: Double,
@@ -268,7 +325,8 @@ public struct SwingReport: Codable, Identifiable, Sendable {
                 coaching: CoachingPlan? = nil,
                 handedness: Handedness? = nil,
                 windowStart: Double? = nil, windowEnd: Double? = nil,
-                videoWidth: Double? = nil, videoHeight: Double? = nil) {
+                videoWidth: Double? = nil, videoHeight: Double? = nil,
+                schemaVersion: Int? = nil, quality: ReportQuality? = nil) {
         self.id = id; self.date = date; self.club = club; self.view = view
         self.videoFileName = videoFileName; self.duration = duration; self.frameRate = frameRate
         self.frames = frames; self.checkpoints = checkpoints; self.plane = plane
@@ -278,6 +336,7 @@ public struct SwingReport: Codable, Identifiable, Sendable {
         self.handedness = handedness
         self.windowStart = windowStart; self.windowEnd = windowEnd
         self.videoWidth = videoWidth; self.videoHeight = videoHeight
+        self.schemaVersion = schemaVersion; self.quality = quality
     }
 
     public func mark(_ p: SwingPosition) -> CheckpointMark? {
@@ -285,8 +344,16 @@ public struct SwingReport: Codable, Identifiable, Sendable {
     }
     public func frame(at time: Double) -> PoseFrame? {
         guard !frames.isEmpty else { return nil }
-        var best = frames[0]
-        for f in frames where abs(f.time - time) < abs(best.time - time) { best = f }
-        return best
+        var low = 0
+        var high = frames.count
+        while low < high {
+            let middle = low + (high - low) / 2
+            if frames[middle].time < time { low = middle + 1 } else { high = middle }
+        }
+        if low == 0 { return frames[0] }
+        if low == frames.count { return frames[frames.count - 1] }
+        let before = frames[low - 1]
+        let after = frames[low]
+        return abs(before.time - time) <= abs(after.time - time) ? before : after
     }
 }

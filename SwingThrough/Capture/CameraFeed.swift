@@ -91,7 +91,7 @@ final class CameraFeed: NSObject, CaptureFeed, AVCaptureVideoDataOutputSampleBuf
         }
         var fps = 30.0
         if let best {
-            let target = best.fps >= 60 ? min(best.fps, 120) : best.fps
+            let target = best.fps >= 60 ? 60 : best.fps
             do {
                 try device.lockForConfiguration()
                 device.activeFormat = best.format

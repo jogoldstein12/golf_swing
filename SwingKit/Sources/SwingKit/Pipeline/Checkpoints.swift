@@ -46,7 +46,8 @@ enum CheckpointDetector {
         init() {}
     }
 
-    static func detect(frames: [PoseFrame], options: Options = .init()) -> SwingTiming? {
+    static func detect(frames: [PoseFrame], options: Options = .init(),
+                       handedness override: Handedness? = nil) -> SwingTiming? {
         guard frames.count > 8, let motion = Motion.gripSpeed2D(frames) else { return nil }
         let (times, grip, speed) = motion
         let n = frames.count
@@ -75,7 +76,9 @@ enum CheckpointDetector {
         guard dist[roughTop] > options.minBackswingProminence else { return nil } // no real swing
 
         // --- handedness from elbow fold (address -> top). ---
-        let handedness = HandednessDetector.detect(frames: frames, addressIndex: p1Index, topIndex: roughTop)
+        let handedness = override ?? HandednessDetector.detect(
+            frames: frames, addressIndex: p1Index, topIndex: roughTop
+        )
         let leadShoulder: Joint = handedness.leadIsLeft ? .shoulderL : .shoulderR
         let trailHip: Joint = handedness.leadIsLeft ? .hipR : .hipL
 

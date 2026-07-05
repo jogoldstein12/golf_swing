@@ -41,7 +41,10 @@ extension SwingReport {
             timing: SwingTiming(checkpoints: dtl.checkpoints, handedness: dtl.handedness ?? .right,
                                tempoBackswingSeconds: 0, tempoDownswingSeconds: 0),
             plane: dtl.plane, pelvisDOF: merged.pelvisDOF, chestDOF: merged.chestDOF, sequence: dtl.sequence)
-        merged.score = MetricsBuilder.score(inputs, metrics: metrics)
+        let quality = MetricsBuilder.reportQuality(inputs)
+        merged.quality = quality
+        merged.schemaVersion = 2
+        merged.score = MetricsBuilder.score(inputs, metrics: metrics, quality: quality)
 
         return merged
     }

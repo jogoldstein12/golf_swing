@@ -1,10 +1,16 @@
 // Settings: the coaching connection. Editorial, minimal — one decision on this sheet.
+import SwiftData
 import SwiftUI
 
 struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query private var swings: [SwingRecord]
+    @Query private var jobs: [AnalysisJobRecord]
     @State private var keyInput = ""
     @State private var hasStoredKey = APIKeyStore.hasKey
+    @State private var diagnostics = DiagnosticsStore.shared
+    @State private var confirmDeleteAll = false
 
     var body: some View {
         ZStack {
@@ -99,6 +105,39 @@ struct SettingsSheet: View {
                     .foregroundStyle(Color.ink45)
                     .padding(.top, 18)
 
+#if DEBUG
+                if let exportURL = diagnostics.latestExportURL {
+                    ShareLink(item: exportURL) {
+                        HStack {
+                            MicroLabel("Export latest diagnostics", color: .ink70)
+                            Spacer()
+                            if let latest = diagnostics.latest {
+                                Text(latest.jobID.uuidString.prefix(8))
+                                    .font(Type.ui(11))
+                                    .foregroundStyle(Color.ink25)
+                            }
+                        }
+                        .padding(.top, 24)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Export latest analysis diagnostics")
+                }
+#endif
+
+                Button(role: .destructive) {
+                    confirmDeleteAll = true
+                } label: {
+                    HStack {
+                        MicroLabel("Delete all local swing data", color: .brickText)
+                        Spacer()
+                    }
+                    .padding(.top, 24)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(swings.isEmpty && jobs.isEmpty)
+
                 Spacer()
             }
             .padding(.horizontal, 24)
@@ -106,5 +145,31 @@ struct SettingsSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationCornerRadius(Radius.card)
+        .confirmationDialog(
+            "Delete all swing data?",
+            isPresented: $confirmDeleteAll,
+            titleVisibility: .visible
+        ) {
+            Button("Delete videos and reports", role: .destructive, action: deleteAllData)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently removes saved videos, reports, and unfinished analyses from this iPhone.")
+        }
+    }
+
+    private func deleteAllData() {
+        for record in swings {
+            if let video = record.videoFileName { try? SwingStore.removeVideo(named: video) }
+            if !record.reportFileName.isEmpty {
+                try? SwingStore.removeReport(named: record.reportFileName)
+            }
+            try? SwingStore.removeJobFiles(jobID: record.id)
+            modelContext.delete(record)
+        }
+        for job in jobs {
+            try? SwingStore.removeJobFiles(jobID: job.id)
+            modelContext.delete(job)
+        }
+        try? modelContext.save()
     }
 }

@@ -4,6 +4,145 @@ This document is an execution brief for a coding agent working in this repositor
 turns the current MVP into a measurable, recoverable, confidence-aware beta. Execute it
 phase by phase. Do not combine all phases into one unreviewable change.
 
+## Live implementation tracker
+
+Last updated: 2026-07-05. This section is the authoritative work log for the beta
+implementation. A phase is marked complete only after its acceptance evidence exists;
+source code alone is not sufficient.
+
+### Source access and reconciliation
+
+- Local brief: this file, fully reviewed.
+- Claude audit URL: access through the supplied local HTML proxy at
+  `/Users/nancycolesmd/.claude/jobs/6a215774/tmp/audit.html` because the public URL
+  returns HTTP 403 in this environment.
+- Proxy verification: 126,015 bytes; SHA-256
+  `5b6ae3997e6becce456695d7ac097985f3541a12144135cddf07afd9305af69d`.
+- Reconciliation result: both documents identify the same dominant crash/latency path
+  (native-FPS dual Vision passes, per-frame allocations without bounded lifetime,
+  first-frame-error aborts, and network-blocked results). The Claude audit additionally
+  calls out the manual capture timer, fabricated demo measurements, and fresh-clone
+  bootstrap gaps; these are retained below as tracked beyond-brief findings.
+
+### Phase status
+
+| Phase | Status | Current evidence / remaining gate |
+|---|---|---|
+| 0 — diagnostics | **Implemented; device gate pending** | Privacy-safe diagnostics/signposts/export are in place; Simulator build/tests pass; three real-device baseline runs still required. |
+| 1 — persistent jobs | **Implemented; device gate pending** | Durable single-active jobs, cancellation, retry/discard, recovery, and migration tests pass in Simulator; real-device cancel timing remains. |
+| 2 — preflight/setup | **Implemented; device media matrix pending** | Typed AVFoundation preflight, preview/trim, angle/club/handedness setup, persistence, retry propagation, and safe cancellation are in place. |
+| 3 — bounded Vision | **Implemented; accuracy/device perf gate pending** | Coarse 12 fps/720 px and detailed 30 fps/960 px budgets, reused requests, decoder sizing, autorelease pools, frame-error budget, and cancellation are covered by tests. |
+| 4 — confidence | **Implemented; validation thresholds pending** | Report/metric quality and provenance, contextual components, legacy defaults, and unavailable-score UI replace neutral-filled precision. |
+| 5 — progressive coaching | **Implemented; live service matrix pending** | Local coaching is persisted before results; optional enhanced coaching is isolated, single-attempt, cancellable, and matching-report guarded. |
+| 6 — results performance | **Implemented; device profiling pending** | Binary lookup, precomputed framing, 30 Hz UI clock, lazy avatar, AVPlayer-only timing, and hidden/paused render suppression are in place. |
+| 7 — beta UX | **Core safeguards implemented; broader product backlog remains** | Correction/delete actions, delete-all data control, capture haptics, 1080p60-class cap, setup guidance, accessible error states; thumbnails/favorites/comparisons require post-gate product work. |
+| 8 — optional models | Deferred | Explicitly gated on Phase 3 validation. |
+| 9 — release gate | In progress | `docs/VALIDATION.md` added; full matrix and device evidence remain. |
+
+### Completed work log
+
+#### 2026-07-05 — Phase 0 implementation
+
+- Added privacy-safe `AnalysisDiagnostics` with stage totals, source metadata, sampled
+  frame counts, memory high-water mark, thermal-state changes, stable failure category,
+  and redacted JSON export.
+- Added paired signpost intervals for preflight, coarse pose, swing detection, detailed
+  pose, smoothing, checkpoints, plane, measurements, metrics, local/remote coaching,
+  and persistence. Failure paths explicitly close active intervals.
+- Throttled progress at its producer to at most 10 Hz, preventing a main-actor task for
+  every decoded frame.
+- Added a MetricKit subscriber for crash, hang, CPU, and memory payloads; payloads stay
+  under Application Support and logs contain counts/categories only.
+- Added a debug-only Settings export for the latest diagnostics JSON.
+- Added `swingctl analyze --diagnostics <path>` so the same privacy-safe stage report is
+  available during macOS fixture validation, including failed analyses.
+- Added five focused package tests covering timing aggregation, failure redaction,
+  thermal-state deduplication, progress throttling, and failed-stage interval closure.
+- Verification: `swift test --disable-sandbox` under Xcode 26.6 passed 42 tests with no
+  failures; one existing AVFoundation host-decoder test skipped. XcodeGen 2.45.4
+  generated the project successfully. Direct iOS compiler checks with macro sandboxing
+  disabled passed for SwingKit, the complete app, the new app tests, and UI tests.
+- Initial sandbox limitation: CoreSimulator and package caches were inaccessible inside
+  the workspace sandbox. The same required build and full test scheme later passed with
+  normal Xcode/CoreSimulator access; see the Phases 2–7 verification entry below.
+- Functional failure-path check: `swingctl analyze` exported a redacted diagnostics file
+  when this host's AVFoundation decoder rejected the bundled sample (`-11821`).
+
+#### 2026-07-05 — Phase 1 implementation
+
+- Added an `AnalysisJobCoordinator` actor with a single-active-job invariant, explicit
+  job and execution IDs, matching cancellation, and stale-attempt rejection.
+- Replaced the UI-facing monolith with an owned cancellable workflow. Progress,
+  diagnostics, terminal state, and navigation are guarded by job/execution identity.
+- Added cancellation checks before and after every analyzer stage and around frame
+  decode, Vision execution, conversion, and append. Active readers cancel on unwind.
+- Preserved `CancellationError` through swing-plane still extraction, the analyzer,
+  Claude networking/retry sleeps, and coaching fallback.
+- Added explicit SwiftData schemas V1/V2 and a lightweight migration plan. V1 freezes
+  the shipped `SwingRecord`; V2 adds scalar `AnalysisJobRecord` state without passing
+  persistent models across actors.
+- Inputs now move from app-owned temporary/capture locations into contained
+  `Swings/Jobs/<jobID>/` storage before Vision runs. A privacy-local atomic manifest
+  bridges filesystem/database interruption windows. Failed, cancelled, and interrupted
+  inputs remain available; only explicit discard removes them.
+- Added launch reconciliation for nonterminal jobs, missing inputs, orphan manifests,
+  and manifests left after a completed database transaction.
+- Added Cancel/Canceling UI, retry/keep/discard failure actions, and saved-analysis rows
+  with text status and missing-video fallback. Root no longer deletes inputs after every
+  outcome.
+- Added coordinator, migration, recovery, path-containment, and manual-capture tests.
+  These now execute successfully in the iPhone 17 Pro Simulator as part of the app's
+  11-test unit bundle.
+- SwingKit now runs 44 tests with no failures and one existing host-decoder skip.
+
+#### 2026-07-05 — Phases 2–7 implementation
+
+- Added typed local video preflight (duration, FPS, transformed dimensions, codec, HDR,
+  readability) and a full-screen setup flow with bounded trim preview, editable angle,
+  remembered club, and Auto/right/left handedness. All selections persist through
+  interruption and retry; explicit handedness reaches checkpoint/sequence analysis.
+- Bounded the selected coarse pass to 12 fps/720 px and detailed 2D+3D pass to
+  30 fps/960 px regardless of 30/60/120/240 fps source rate. Decoder output is sized
+  before Vision, request objects are reused, per-frame work has an autorelease pool,
+  isolated failures continue within a tested 10%/five-consecutive error budget, and
+  cancellation remains checked around every expensive boundary.
+- Versioned new reports with report-wide 2D/3D/checkpoint/orientation quality, warnings,
+  and per-metric provenance. Scores now omit unavailable/view-inapplicable components,
+  renormalize measured weights, and render an explicit insufficient-data state instead
+  of substituting neutral values.
+- Moved network coaching entirely off the completion path. Rule-based coaching is
+  persisted with deterministic results; optional enhanced coaching begins only after
+  results render, uses one eight-second attempt and a smaller response budget, updates
+  only its matching report, and keeps local coaching on every failure.
+- Replaced linear frame lookup with binary search, precomputed framing smoothing,
+  reduced playback observation to 30 Hz, made AVPlayer the sole clock, lazily constructs
+  the avatar, and disables continuous hidden/paused SceneKit rendering.
+- Added history correction/delete actions, confirmed delete-all local data, fixed the
+  capture target at a 60 fps ceiling, and added haptic capture cues while preserving
+  denied-camera and import/preflight fallback states.
+- Verification: XcodeGen succeeds; required iPhone 17 Pro Simulator build succeeds;
+  11 app unit tests and three UI/launch tests pass; SwingKit runs 57 tests with no
+  failures and one host decoder skip. Real-device performance, camera, thermal, and
+  measurement-accuracy acceptance evidence remain release gates.
+
+### Beyond-original-scope work
+
+- **Completed — bootstrap:** added a pinned XcodeGen 2.45.4 bootstrap script, repaired
+  the font fetcher so it creates and validates all eight staged app fonts, and added a
+  single `tools/verify.sh` entry point for generation, app build, and package tests.
+- **Completed — repository hygiene:** removed the accidental empty tracked root file
+  named `Main`.
+- **Completed — app test foundation:** added the previously missing iOS unit-test target
+  and diagnostics tests that reject terminal-state regression and stale-job updates.
+- **Completed — capture correctness:** manual countdown capture now requires measured
+  swing motion before settle completion; a swing-less take times out and is discarded.
+- **Completed — capture lifecycle:** dismissal cancels in-flight export, deletes late
+  output, and removes unaccepted review takes without deleting an accepted handoff.
+- **Demo honesty:** the bundled report is illustrative prototype data, not proven output
+  from the production pipeline.
+- **Signing environment:** one local provisioning profile is malformed and device CLI
+  builds need an explicitly selected Apple development team.
+
 ## Role and objective
 
 You are working in the local Xcode/iOS repository for SwingThrough, an on-device golf

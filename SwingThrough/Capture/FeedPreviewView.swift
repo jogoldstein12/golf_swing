@@ -66,26 +66,54 @@ struct FeedPreviewView: UIViewRepresentable {
 /// Muted, seamless loop of the trimmed take for the review card.
 struct LoopingPlayerView: UIViewRepresentable {
     let url: URL
+    let playbackRange: ClosedRange<Double>?
+
+    init(url: URL, playbackRange: ClosedRange<Double>? = nil) {
+        self.url = url
+        self.playbackRange = playbackRange
+    }
 
     final class PlayerView: UIView {
         override class var layerClass: AnyClass { AVPlayerLayer.self }
         var playerLayer: AVPlayerLayer? { layer as? AVPlayerLayer }
         var looper: AVPlayerLooper?
+        var playbackRange: ClosedRange<Double>?
     }
 
     func makeUIView(context: Context) -> PlayerView {
         let view = PlayerView()
-        let player = AVQueuePlayer()
-        player.isMuted = true
-        view.looper = AVPlayerLooper(player: player,
-                                     templateItem: AVPlayerItem(url: url))
-        view.playerLayer?.player = player
-        view.playerLayer?.videoGravity = .resizeAspectFill
-        player.play()
+        configure(view)
         return view
     }
 
-    func updateUIView(_ view: PlayerView, context: Context) {}
+    func updateUIView(_ view: PlayerView, context: Context) {
+        guard view.playbackRange != playbackRange else { return }
+        configure(view)
+    }
+
+    private func configure(_ view: PlayerView) {
+        view.playerLayer?.player?.pause()
+        view.looper = nil
+        let player = AVQueuePlayer()
+        player.isMuted = true
+        let item = AVPlayerItem(url: url)
+        if let playbackRange {
+            view.looper = AVPlayerLooper(
+                player: player,
+                templateItem: item,
+                timeRange: CMTimeRange(
+                    start: CMTime(seconds: playbackRange.lowerBound, preferredTimescale: 600),
+                    end: CMTime(seconds: playbackRange.upperBound, preferredTimescale: 600)
+                )
+            )
+        } else {
+            view.looper = AVPlayerLooper(player: player, templateItem: item)
+        }
+        view.playerLayer?.player = player
+        view.playerLayer?.videoGravity = .resizeAspectFill
+        view.playbackRange = playbackRange
+        player.play()
+    }
 
     static func dismantleUIView(_ view: PlayerView, coordinator: ()) {
         view.playerLayer?.player?.pause()

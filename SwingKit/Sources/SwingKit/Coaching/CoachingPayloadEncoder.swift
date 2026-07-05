@@ -59,6 +59,7 @@ public enum CoachingPayloadEncoder {
 
     public struct ScorePayload: Codable, Equatable, Sendable {
         public let total: Int
+        public let availability: String
         public let components: [ComponentPayload]
     }
 
@@ -119,6 +120,7 @@ public enum CoachingPayloadEncoder {
 
         let score = ScorePayload(
             total: report.score.total,
+            availability: (report.score.availability ?? .available).rawValue,
             components: report.score.components.map { ComponentPayload(label: $0.label, score: $0.score, weight: $0.weight) })
 
         let ctx = ContextPayload(skillLevel: context.skillLevel, club: context.club,

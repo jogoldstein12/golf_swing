@@ -6,6 +6,7 @@ import SwingKit
 
 struct AnalysisScreen: View {
     @Bindable var model: AnalysisModel
+    @State private var enhancedCoaching = EnhancedCoachingStore.shared
     var onBack: (() -> Void)? = nil
     var onRecord: () -> Void = {}
 
@@ -36,6 +37,20 @@ struct AnalysisScreen: View {
                     ScoreBlock(score: model.report.score, verdict: model.report.coaching?.verdict)
                         .padding(.top, 40)
 
+                    if let warnings = model.report.quality?.warnings, !warnings.isEmpty {
+                        FloatCard(padding: 18) {
+                            VStack(alignment: .leading, spacing: 7) {
+                                MicroLabel("Measurement notes", color: .brickText)
+                                ForEach(warnings, id: \.self) { warning in
+                                    Text(warning)
+                                        .font(Type.ui(12.5))
+                                        .foregroundStyle(Color.ink70)
+                                }
+                            }
+                        }
+                        .padding(.top, 18)
+                    }
+
                     Hairline().padding(.top, 32)
                         .id("metrics")
 
@@ -63,6 +78,8 @@ struct AnalysisScreen: View {
             }
             }
         }
+        .task(id: model.report.id) { await enhancedCoaching.enhance(model) }
+        .onDisappear { enhancedCoaching.cancel(reportID: model.report.id) }
     }
 
     // MARK: header + heading
@@ -158,10 +175,11 @@ struct AnalysisScreen: View {
                 .opacity(videoHeight > 0 ? 1 : 0)
             Hairline()
                 .opacity(model.pane == .split ? 1 : 0)
-            AvatarPane(model: model, compact: model.pane == .split)
-                .frame(height: avatarHeight)
-                .clipped()
-                .opacity(avatarHeight > 0 ? 1 : 0)
+            if model.pane != .video {
+                AvatarPane(model: model, compact: model.pane == .split)
+                    .frame(height: avatarHeight)
+                    .clipped()
+            }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.88), value: model.pane)
     }
@@ -203,12 +221,20 @@ struct AnalysisScreen: View {
                 HStack {
                     MicroLabel("Your Goals")
                     Spacer()
-                    MicroLabel("Priority order", color: .ink25)
+                    MicroLabel(coachingLabel, color: .ink25)
                 }
                 ForEach(Array(coaching.goals.enumerated()), id: \.element.id) { i, g in
                     GoalCard(goal: g, index: i)
                 }
             }
+        }
+    }
+
+    private var coachingLabel: String {
+        switch enhancedCoaching.state(for: model.report.id) {
+        case .local: "Local coaching"
+        case .enhancing: "Enhancing…"
+        case .enhanced: "Enhanced coaching"
         }
     }
 }
