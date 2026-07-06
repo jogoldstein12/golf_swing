@@ -32,6 +32,13 @@ final class AnalysisModel {
 
     private var timeObserver: Any?
 
+    // Smooth scrubbing: AVPlayer can't service exact-frame seeks as fast as a drag emits
+    // them, so unmanaged rapid seeks pile up, get cancelled, and the layer freezes on a
+    // stale frame while the overlay keeps moving. Keep at most one seek in flight and
+    // "chase" the latest requested time once it completes (Apple's smooth-seeking pattern).
+    private var isSeekInFlight = false
+    private var pendingSeekTime: Double?
+
     /// Precomputed per-frame framing anchors (normalized video-y) for the moving
     /// camera window: the golfer's confident joints plus the ball/ground point.
     private struct FramingSample {
@@ -206,8 +213,27 @@ final class AnalysisModel {
     }
 
     private func seek(to t: Double) {
+        // Coalesce: if a seek is already running, remember only the newest target and
+        // service it when the current one finishes — so a fast drag resolves to its final
+        // position instead of stalling on a backlog of cancelled seeks.
+        guard !isSeekInFlight else {
+            pendingSeekTime = t
+            return
+        }
+        isSeekInFlight = true
         player.seek(to: CMTime(seconds: t, preferredTimescale: 600),
-                    toleranceBefore: .zero, toleranceAfter: .zero)
+                    toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
+            // seek's completion fires on an arbitrary queue; hop to main before touching
+            // player/observable state (the periodic observer likewise runs on .main).
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isSeekInFlight = false
+                if let next = self.pendingSeekTime {
+                    self.pendingSeekTime = nil
+                    self.seek(to: next)
+                }
+            }
+        }
     }
 
     /// Keep the scrubber highlight on the latest headline checkpoint we've passed.
