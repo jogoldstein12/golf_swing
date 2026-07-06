@@ -9,6 +9,8 @@ struct AnalysisScreen: View {
     @State private var enhancedCoaching = EnhancedCoachingStore.shared
     var onBack: (() -> Void)? = nil
     var onRecord: () -> Void = {}
+    /// Open the drill-detail (practice loop) page for a goal. Wired by RootView.
+    var onOpenDrill: (CoachGoal) -> Void = { _ in }
     /// Most recent prior swing of the SAME club AND view, resolved by RootView from the
     /// swing history. Drives the current-vs-previous deltas. nil when there is none.
     var priorReport: SwingReport? = nil
@@ -23,10 +25,35 @@ struct AnalysisScreen: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     header
-                    heading.padding(.top, 36)
+                    GlanceStrip(
+                        score: model.report.score,
+                        oneThing: model.report.coaching?.goals.first?.title,
+                        scoreDelta: scoreDelta
+                    )
+                    .padding(.top, 20)
+                    heading.padding(.top, 30)
                     heroCard.padding(.top, 20)
 
-                    if LeadCard.shouldShow(for: model.report) {
+                    // The coaching canvas leads for a SCORED read: goal #1's honest overlay
+                    // + one cue + the two next actions. Never shown for a low-confidence
+                    // read — there is no trustworthy fault to draw.
+                    if let goal = model.report.coaching?.goals.first,
+                       model.report.score.isAvailable {
+                        let plan = SwingOverlay.plan(
+                            goal: goal, report: model.report, prior: priorReport, skill: .beginner
+                        )
+                        CoachingCanvas(
+                            plan: plan,
+                            drillName: goal.drill,
+                            onSeeFix: { model.select(plan.position) },
+                            onDrill: { onOpenDrill(goal) }
+                        )
+                        .padding(.top, 20)
+                    }
+
+                    // The low-confidence lead still leads when the read was too limited to
+                    // score; the scored case is now carried by the glance strip + canvas.
+                    if !model.report.score.isAvailable, LeadCard.shouldShow(for: model.report) {
                         LeadCard(report: model.report, priorReport: priorReport, history: clubHistory)
                             .padding(.top, 20)
                     }
@@ -245,15 +272,17 @@ struct AnalysisScreen: View {
 
     @ViewBuilder
     private var goals: some View {
-        if let coaching = model.report.coaching, !coaching.goals.isEmpty {
+        // Goal #1 is surfaced above by the glance strip + coaching canvas, so the list
+        // shows the remaining goals only (keeping their original 2, 3… numbering).
+        if let coaching = model.report.coaching, coaching.goals.count > 1 {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    MicroLabel("Your Goals")
+                    MicroLabel("The rest of your plan")
                     Spacer()
                     MicroLabel(coachingLabel, color: .ink25)
                 }
-                ForEach(Array(coaching.goals.enumerated()), id: \.element.id) { i, g in
-                    GoalCard(goal: g, index: i)
+                ForEach(Array(coaching.goals.enumerated()).dropFirst(), id: \.element.id) { i, g in
+                    GoalCard(goal: g, index: i, onDrill: { onOpenDrill(g) })
                 }
             }
         }

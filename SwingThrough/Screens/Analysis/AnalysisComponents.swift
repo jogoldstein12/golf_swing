@@ -203,12 +203,13 @@ struct MeterRow: View {
         .padding(.vertical, 18)
     }
 
-    /// Provenance word, color-coded: measured is quiet, an inferred/interpolated value
-    /// wears an amber caution. Withheld is handled by the "Not measured" state instead.
+    /// Plain-language provenance, color-coded: measured is quiet, an inferred/interpolated
+    /// value reads as "Estimated" in amber. The raw pipeline words ("Inferred" /
+    /// "Interpolated") never reach the UI. Withheld is handled by "Not measured".
     @ViewBuilder
     private var provenanceTag: some View {
         if let provenance = m.quality?.provenance, provenance != .unavailable {
-            Text(provenance.rawValue.capitalized)
+            Text(provenance == .measured ? "Measured" : "Estimated")
                 .font(Type.ui(9, .medium))
                 .foregroundStyle(provenance == .measured ? Color.ink45 : Color.amber)
         }
@@ -314,6 +315,8 @@ struct ScoreBlock: View {
 struct GoalCard: View {
     let goal: CoachGoal
     let index: Int
+    /// Tapping the drill opens its detail page (WS-E practice loop). nil = not tappable.
+    var onDrill: (() -> Void)? = nil
 
     var body: some View {
         FloatCard(padding: 24) {
@@ -353,17 +356,35 @@ struct GoalCard: View {
                 }
                 .padding(.top, 18)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Hairline()
-                    MicroLabel("Drill", color: .ink45)
-                        .padding(.top, 10)
-                    (Text(goal.drill).font(Type.ui(13, .medium))
-                        + Text(" — \(goal.drillDetail)").font(Type.ui(13)))
-                        .foregroundStyle(Color.ink)
-                        .lineSpacing(2.5)
-                }
-                .padding(.top, 16)
+                drillBlock
+                    .padding(.top, 16)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var drillBlock: some View {
+        let content = VStack(alignment: .leading, spacing: 4) {
+            Hairline()
+            HStack {
+                MicroLabel("Drill", color: .ink45)
+                if onDrill != nil {
+                    Spacer()
+                    MicroLabel("Practice →", color: .fairwayText, size: 9)
+                }
+            }
+            .padding(.top, 10)
+            (Text(goal.drill).font(Type.ui(13, .medium))
+                + Text(" — \(goal.drillDetail)").font(Type.ui(13)))
+                .foregroundStyle(Color.ink)
+                .lineSpacing(2.5)
+        }
+        if let onDrill {
+            Button(action: onDrill) { content.contentShape(Rectangle()) }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("goalDrill")
+        } else {
+            content
         }
     }
 }

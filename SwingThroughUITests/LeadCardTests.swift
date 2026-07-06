@@ -4,18 +4,21 @@ import XCTest
 
 final class LeadCardTests: XCTestCase {
 
-    /// The lead card surfaces the #1 coaching goal's headline as the first finding.
+    /// The scored results screen surfaces the #1 coaching goal as the lead finding —
+    /// now via the glance strip + coaching canvas (WS-E), which replaced the lead card
+    /// for scored reads.
     func testLeadCardShowsTopGoal() {
         let app = XCUIApplication()
         app.launchEnvironment["ST_SCREEN"] = "analysis"
         app.launch()
 
-        // The demo report's priority-1 goal.
-        XCTAssertTrue(
-            app.staticTexts["Shallow the shaft in transition"].waitForExistence(timeout: 15)
-        )
-        // Its single next action is labelled on the card.
-        XCTAssertTrue(app.staticTexts["DO THIS NEXT"].exists)
+        // Wait for the scored lead to settle, then assert its content (a direct wait on
+        // the text alone can race a slow cold-boot render).
+        XCTAssertTrue(app.otherElements["glanceStrip"].waitForExistence(timeout: 20))
+        // The demo report's priority-1 goal, carried by the glance strip.
+        XCTAssertTrue(app.staticTexts["Shallow the shaft in transition"].exists)
+        // The coaching canvas surfaces its single next action.
+        XCTAssertTrue(app.buttons["seeFix"].waitForExistence(timeout: 5))
     }
 
     /// A low-confidence read leads with the confidence explanation and never renders a

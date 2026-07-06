@@ -122,18 +122,66 @@ enum SwingThroughSchemaV2: VersionedSchema {
     }
 }
 
-enum SwingThroughMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] {
-        [SwingThroughSchemaV1.self, SwingThroughSchemaV2.self]
+enum SwingThroughSchemaV3: VersionedSchema {
+    static var versionIdentifier = Schema.Version(3, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        [SwingThroughSchemaV1.SwingRecord.self,
+         SwingThroughSchemaV2.AnalysisJobRecord.self,
+         FocusRecord.self]
     }
 
-    static var stages: [MigrationStage] { [migrateV1toV2] }
+    /// WS-E — the pinned carry-forward focus: one thing the golfer is working on for a
+    /// (club, view), verified by the next same-club swing. At most one active (unresolved)
+    /// per (club, view); resolving sets `resolvedSwingID`.
+    @Model
+    final class FocusRecord {
+        @Attribute(.unique) var id: UUID
+        var createdAt: Date
+        var club: String
+        var viewRaw: String
+        var goalTitle: String
+        var metricLabel: String
+        var cue: String
+        var drillName: String
+        var resolvedSwingID: UUID?
+
+        init(id: UUID = UUID(), createdAt: Date = Date(), club: String, viewRaw: String,
+             goalTitle: String, metricLabel: String, cue: String, drillName: String,
+             resolvedSwingID: UUID? = nil) {
+            self.id = id
+            self.createdAt = createdAt
+            self.club = club
+            self.viewRaw = viewRaw
+            self.goalTitle = goalTitle
+            self.metricLabel = metricLabel
+            self.cue = cue
+            self.drillName = drillName
+            self.resolvedSwingID = resolvedSwingID
+        }
+
+        var isResolved: Bool { resolvedSwingID != nil }
+    }
+}
+
+enum SwingThroughMigrationPlan: SchemaMigrationPlan {
+    static var schemas: [any VersionedSchema.Type] {
+        [SwingThroughSchemaV1.self, SwingThroughSchemaV2.self, SwingThroughSchemaV3.self]
+    }
+
+    static var stages: [MigrationStage] { [migrateV1toV2, migrateV2toV3] }
 
     static let migrateV1toV2 = MigrationStage.lightweight(
         fromVersion: SwingThroughSchemaV1.self,
         toVersion: SwingThroughSchemaV2.self
     )
+
+    // FocusRecord is purely additive, so a lightweight migration suffices.
+    static let migrateV2toV3 = MigrationStage.lightweight(
+        fromVersion: SwingThroughSchemaV2.self,
+        toVersion: SwingThroughSchemaV3.self
+    )
 }
 
 typealias SwingRecord = SwingThroughSchemaV1.SwingRecord
 typealias AnalysisJobRecord = SwingThroughSchemaV2.AnalysisJobRecord
+typealias FocusRecord = SwingThroughSchemaV3.FocusRecord
