@@ -382,6 +382,10 @@ final class SwingSession {
                 throw error
             }
             try? await fileStore.markCompleted(jobID: job.id)
+            FocusResolver.resolve(
+                current: record, currentReport: finished,
+                history: history, context: context
+            )
 
             diagnostics.recordStage("persistence", duration: Date().timeIntervalSince(started))
             diagnostics.finish()
