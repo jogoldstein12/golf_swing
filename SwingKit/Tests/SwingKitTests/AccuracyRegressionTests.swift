@@ -31,7 +31,26 @@ final class AccuracyRegressionTests: XCTestCase {
             id: "bundled-sample",
             relativePath: "SwingThrough/Fixtures/sample_dtl.mp4",
             view: .downTheLine,
-            // Checkpoints/tolerances pending real annotation (docs/VALIDATION.md registry).
+            // WS-D annotation (2026-07-05, docs/VALIDATION.md registry). This clip's 3D
+            // yaw is degenerate at the top, so its turn family is correctly WITHHELD —
+            // but its orientation-independent metrics (tempo, posture) are honestly
+            // measured, and those are what we pin. Windows are hand-set around the
+            // current pipeline output with margin for host (macOS CLI vs iOS Simulator
+            // Vision) variance; they'd still catch a gross regression.
+            checkpoints: [
+                .p1: 1.0...2.0,
+                .p4: 2.5...3.4,
+                .p7: 3.2...4.0,
+                .p10: 4.5...5.8,
+            ],
+            metricTolerances: [
+                // Trustworthy (orientation-independent) metrics only — the turn family is
+                // withheld on this clip and the harness skips withheld values anyway.
+                "Tempo": 1.7...3.0,
+                "Spine Angle": 33...48,
+                "Spine Angle Change at Impact": 18...34,
+                "Pelvis Thrust at Impact": 0.8...2.8,
+            ],
             mustNotBeConfident: true
         )
     ]
