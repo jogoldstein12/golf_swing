@@ -79,4 +79,25 @@ final class KinematicSequenceTests: XCTestCase {
             XCTAssertGreaterThan(peak.peakDegPerSec, 0)
         }
     }
+
+    private func sequence(pelvisTime: Double, torsoTime: Double) -> KinematicSequence {
+        KinematicSequence(peaks: [
+            .init(segment: .pelvis, time: pelvisTime, peakDegPerSec: 400),
+            .init(segment: .torso, time: torsoTime, peakDegPerSec: 500),
+            .init(segment: .leadArm, time: torsoTime + 0.1, peakDegPerSec: 600),
+            .init(segment: .club, time: torsoTime + 0.2, peakDegPerSec: 700),
+        ])
+    }
+
+    func testIsDegenerateWhenPelvisAndTorsoPeakWithinWindow() {
+        let seq = sequence(pelvisTime: 2.000, torsoTime: 2.008) // 8ms apart
+        XCTAssertTrue(seq.isDegenerate)
+        XCTAssertEqual(MetricsBuilder.isSequenceDegenerate(seq), seq.isDegenerate)
+    }
+
+    func testIsNotDegenerateWhenPelvisAndTorsoPeaksAreWellSeparated() {
+        let seq = sequence(pelvisTime: 2.000, torsoTime: 2.050) // 50ms apart
+        XCTAssertFalse(seq.isDegenerate)
+        XCTAssertEqual(MetricsBuilder.isSequenceDegenerate(seq), seq.isDegenerate)
+    }
 }

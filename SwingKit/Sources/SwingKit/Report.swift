@@ -143,6 +143,18 @@ public struct KinematicSequence: Codable, Sendable {
     public var isInOrder: Bool {
         peaks.map(\.segment) == [Segment.pelvis, .torso, .leadArm, .club]
     }
+    /// WS-C: pelvis and torso peaks within this window (≈1 frame @30fps) make the
+    /// downswing peak *order* noise rather than signal — the two segments share the
+    /// pose model's yaw component, so a sub-frame gap can't be resolved.
+    public static let degenerateWindow = 0.033
+    /// True when pelvis and torso peak essentially together — an unresolvable order.
+    public var isDegenerate: Bool {
+        guard peaks.count == 4,
+              let pelvis = peaks.first(where: { $0.segment == .pelvis })?.time,
+              let torso = peaks.first(where: { $0.segment == .torso })?.time
+        else { return false }
+        return abs(torso - pelvis) < Self.degenerateWindow
+    }
     /// Angular-velocity traces for the sequence graph (deg/s), sampled at `times`.
     public var times: [Double]
     public var series: [Segment: [Double]]
