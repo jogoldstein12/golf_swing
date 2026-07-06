@@ -133,15 +133,13 @@ enum MetricsBuilder {
     /// downswing peak *order* noise rather than signal — the two segments share the
     /// pose model's yaw component, so a sub-frame gap can't be resolved. The sequence
     /// is then scored neutral (its weight redistributed to the reliable components).
-    static let sequenceDegenerateWindow = 0.033
+    static let sequenceDegenerateWindow = KinematicSequence.degenerateWindow
 
     /// True when pelvis and torso peak essentially together — an unresolvable order.
+    /// Delegates to `KinematicSequence.isDegenerate` — single source of truth shared
+    /// with the app (see docs/VALIDATION.md, WS-C).
     static func isSequenceDegenerate(_ seq: KinematicSequence) -> Bool {
-        guard seq.peaks.count == 4,
-              let pelvis = seq.peaks.first(where: { $0.segment == .pelvis })?.time,
-              let torso = seq.peaks.first(where: { $0.segment == .torso })?.time
-        else { return false }
-        return abs(torso - pelvis) < sequenceDegenerateWindow
+        seq.isDegenerate
     }
 
     /// WS-C: orientation confidence is judged in the P4/P5 (top/transition) neighborhood,
