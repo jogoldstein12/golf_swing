@@ -49,6 +49,10 @@ public enum CoachingPayloadEncoder {
         public let idealLow: Double
         public let idealHigh: Double
         public let inBand: Bool
+        /// "measured" | "interpolated" | "inferred". `.unavailable` metrics are never
+        /// encoded at all, so this value is always one the model may reason from —
+        /// though `interpolated`/`inferred` signal it should hedge, not prescribe.
+        public let provenance: String
     }
 
     public struct ComponentPayload: Codable, Equatable, Sendable {
@@ -73,6 +77,10 @@ public enum CoachingPayloadEncoder {
         public let view: String
         public let club: String
         public let handedness: String?
+        /// "reliable" when the score is available, else "low_confidence" — surfaced at the
+        /// top level so the model doesn't have to spelunk the score object to know how
+        /// much to trust this read.
+        public let reliability: String
         public let durationSeconds: Double
         public let checkpoints: [PositionValue]
         public let planeBasis: String?
@@ -113,9 +121,13 @@ public enum CoachingPayloadEncoder {
             }
         }
 
-        let metrics = report.metrics.map {
+        // Withheld (`.unavailable`) metrics are excluded entirely — the model must never
+        // see a distrusted value, let alone advise on it. Surviving metrics carry their
+        // provenance so the model can hedge on interpolated/inferred estimates.
+        let metrics = report.coachableMetrics.map {
             MetricPayload(label: $0.label, value: $0.value, unit: $0.unit,
-                          idealLow: $0.idealLow, idealHigh: $0.idealHigh, inBand: $0.inBand)
+                          idealLow: $0.idealLow, idealHigh: $0.idealHigh, inBand: $0.inBand,
+                          provenance: ($0.quality?.provenance ?? .measured).rawValue)
         }
 
         let score = ScorePayload(
@@ -130,6 +142,7 @@ public enum CoachingPayloadEncoder {
             view: report.view.rawValue,
             club: report.club,
             handedness: report.handedness?.rawValue,
+            reliability: report.score.isAvailable ? "reliable" : "low_confidence",
             durationSeconds: report.duration,
             checkpoints: checkpoints,
             planeBasis: report.plane.basis?.rawValue,

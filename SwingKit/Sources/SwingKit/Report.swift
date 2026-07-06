@@ -262,11 +262,16 @@ public struct CoachGoal: Codable, Identifiable, Sendable {
     public var target: String
     public var drill: String
     public var drillDetail: String
+    /// Short external-focus imperative for the on-frame canvas caption — names the
+    /// club/target/effect, never a body part ("Drop the club into the corridor").
+    /// Optional for JSON compatibility with older reports (absent = derive from title).
+    public var cue: String?
     public init(priority: Int, title: String, detail: String, metricLabel: String,
-                current: String, target: String, drill: String, drillDetail: String) {
+                current: String, target: String, drill: String, drillDetail: String,
+                cue: String? = nil) {
         self.priority = priority; self.title = title; self.detail = detail
         self.metricLabel = metricLabel; self.current = current; self.target = target
-        self.drill = drill; self.drillDetail = drillDetail
+        self.drill = drill; self.drillDetail = drillDetail; self.cue = cue
     }
 }
 
@@ -337,6 +342,14 @@ public struct SwingReport: Codable, Identifiable, Sendable {
         self.windowStart = windowStart; self.windowEnd = windowEnd
         self.videoWidth = videoWidth; self.videoHeight = videoHeight
         self.schemaVersion = schemaVersion; self.quality = quality
+    }
+
+    /// Metrics the coaching + canvas layers are allowed to advise on: everything the
+    /// pipeline still trusts. A withheld (`.unavailable`) metric keeps its value for the
+    /// record but must never drive a goal, a hard target, or an on-frame overlay.
+    /// `.interpolated`/`.inferred` are included (usable but flagged so advice can hedge).
+    public var coachableMetrics: [MetricValue] {
+        metrics.filter { ($0.quality?.provenance ?? .measured) != .unavailable }
     }
 
     public func mark(_ p: SwingPosition) -> CheckpointMark? {

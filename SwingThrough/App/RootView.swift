@@ -12,7 +12,18 @@ struct RootView: View {
 
     enum Route: Hashable { case drills }
 
+    /// A goal handed off to the drill-detail (practice loop) page, carrying the swing's
+    /// club + view so the pinned focus is scoped correctly. CoachGoal isn't Hashable, so
+    /// we present via `.fullScreenCover(item:)` rather than a NavigationPath route.
+    private struct PendingDrill: Identifiable {
+        let id = UUID()
+        let goal: CoachGoal
+        let club: String
+        let viewRaw: String
+    }
+
     @State private var path = NavigationPath()
+    @State private var drillGoal: PendingDrill?
     @State private var showCapture = false
     @State private var pendingSetup: PendingSwingSource?
     @State private var session = SwingSession()
@@ -84,6 +95,13 @@ struct RootView: View {
                         model: model,
                         onBack: { path.removeLast() },
                         onRecord: recordNextSwing,
+                        onOpenDrill: { goal in
+                            drillGoal = PendingDrill(
+                                goal: goal,
+                                club: model.report.club,
+                                viewRaw: model.report.view.rawValue
+                            )
+                        },
                         priorReport: priorReport(for: record),
                         clubHistory: clubHistory(for: record)
                     )
@@ -141,6 +159,15 @@ struct RootView: View {
                     presentSetup(for: url, suggestedView: view)
                 }
             })
+        }
+        .fullScreenCover(item: $drillGoal) { pending in
+            DrillDetailScreen(
+                goal: pending.goal,
+                club: pending.club,
+                viewRaw: pending.viewRaw,
+                onBack: { drillGoal = nil },
+                onDone: { drillGoal = nil }
+            )
         }
         .fullScreenCover(item: $pendingSetup) { source in
             SwingSetupScreen(
@@ -200,7 +227,25 @@ struct RootView: View {
     @ViewBuilder
     private var demoAnalysisView: some View {
         if let demoAnalysis {
-            AnalysisScreen(model: demoAnalysis)
+            AnalysisScreen(
+                model: demoAnalysis,
+                onOpenDrill: { goal in
+                    drillGoal = PendingDrill(
+                        goal: goal,
+                        club: demoAnalysis.report.club,
+                        viewRaw: demoAnalysis.report.view.rawValue
+                    )
+                }
+            )
+            .fullScreenCover(item: $drillGoal) { pending in
+                DrillDetailScreen(
+                    goal: pending.goal,
+                    club: pending.club,
+                    viewRaw: pending.viewRaw,
+                    onBack: { drillGoal = nil },
+                    onDone: { drillGoal = nil }
+                )
+            }
         } else {
             unavailableAnalysis(onBack: nil)
         }

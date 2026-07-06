@@ -9,40 +9,95 @@ public struct RuleBasedCoach: CoachingEngine {
     public init() {}
 
     public func coach(_ report: SwingReport, context: CoachingContext) async throws -> CoachingPlan {
+        // Metric-family checks read ONLY coachable metrics — a withheld (.unavailable)
+        // value is never differenced into a fault. Plane/sequence/posture checks carry
+        // their own measurement gates (plane.basis, empty peaks, missing DOF).
+        let coachable = report.coachableMetrics
         var violations: [RuleBasedCoach.Violation] = []
         if let v = Self.checkSequence(report.sequence) { violations.append(v) }
         if let v = Self.checkPlane(report.plane) { violations.append(v) }
         if let v = Self.checkPosture(report) { violations.append(v) }
-        if let v = Self.checkTempo(report.metrics) { violations.append(v) }
-        if let v = Self.checkTurn(report.metrics) { violations.append(v) }
+        if let v = Self.checkTempo(coachable) { violations.append(v) }
+        if let v = Self.checkTurn(coachable) { violations.append(v) }
+
+        // Low-confidence read: lead with capture quality and never fabricate confidence.
+        // At most one measured-fault goal follows, marked tentative. The "≥2 goals" floor
+        // is relaxed here — an honest single capture goal beats an invented second fault.
+        if !report.score.isAvailable {
+            var goals: [CoachGoal] = [Self.captureGoal(report)]
+            if let v = violations.first {
+                goals.append(Self.goal(from: v, priority: 2, tentative: true))
+            }
+            return CoachingPlan(
+                verdict: "We couldn't measure this one cleanly — get the whole swing in frame and we'll give you a precise read.",
+                goals: goals, source: .rules)
+        }
 
         var goals: [CoachGoal] = violations.prefix(4).enumerated().map { index, v in
-            CoachGoal(priority: index + 1, title: v.title, detail: v.detail, metricLabel: v.metricLabel,
-                      current: v.current, target: v.target, drill: v.drill.name, drillDetail: v.drill.detail)
+            Self.goal(from: v, priority: index + 1)
         }
 
         if goals.count < 2 {
             let usedLabels = Set(violations.map(\.metricLabel))
             let need = 2 - goals.count
-            let refinements = Self.refinementGoals(from: report.metrics, excludingLabels: usedLabels, need: need)
+            let refinements = Self.refinementGoals(from: coachable, excludingLabels: usedLabels, need: need)
             for r in refinements {
-                goals.append(CoachGoal(priority: goals.count + 1, title: r.title, detail: r.detail,
-                                        metricLabel: r.metricLabel, current: r.current, target: r.target,
-                                        drill: r.drill.name, drillDetail: r.drill.detail))
+                goals.append(Self.goal(from: r, priority: goals.count + 1))
             }
         }
 
         // Absolute last resort so we truly never return zero goals, even on a near-empty fixture.
         if goals.isEmpty {
-            goals.append(CoachGoal(
-                priority: 1, title: "Capture a full checkpoint set",
-                detail: "This swing didn't have enough measured checkpoints to generate specific feedback. Re-record with the full address-to-finish window in view so the plane, sequence, and posture checks all have data to work from.",
-                metricLabel: "Data coverage", current: "Incomplete", target: "Full P1–P10",
-                drill: Drills.mirrorCheckpoints.name, drillDetail: Drills.mirrorCheckpoints.detail))
+            goals.append(Self.captureGoal(report))
         }
 
         let verdict = Self.buildVerdict(report: report, primary: violations.first)
         return CoachingPlan(verdict: verdict, goals: goals, source: .rules)
+    }
+
+    /// Builds a CoachGoal from a violation, attaching its external-focus cue. `tentative`
+    /// softens the detail when the read is low-confidence.
+    static func goal(from v: Violation, priority: Int, tentative: Bool = false) -> CoachGoal {
+        let detail = tentative
+            ? "If this read holds up on a cleaner capture: \(v.detail)"
+            : v.detail
+        return CoachGoal(priority: priority, title: v.title, detail: detail, metricLabel: v.metricLabel,
+                         current: v.current, target: v.target, drill: v.drill.name, drillDetail: v.drill.detail,
+                         cue: cue(for: v))
+    }
+
+    /// The honest lead when the score is insufficient: how to get a cleaner read, never a
+    /// fabricated fault. Sentinel `metricLabel == "Capture"` — the UI treats it as a
+    /// non-metric card.
+    static func captureGoal(_ report: SwingReport) -> CoachGoal {
+        let notes = report.quality?.warnings.first
+        let detail = notes.map { "\($0) Re-record with your whole body — head to clubhead — in frame, the phone steady, and even light." }
+            ?? "This swing didn't have enough measured checkpoints for specific feedback. Re-record with the full address-to-finish window in view so the plane, sequence, and posture checks all have data to work from."
+        return CoachGoal(
+            priority: 1, title: "Get a cleaner read",
+            detail: detail,
+            metricLabel: "Capture", current: "Low confidence", target: "Full swing in frame",
+            drill: Drills.mirrorCheckpoints.name, drillDetail: Drills.mirrorCheckpoints.detail,
+            cue: "Frame the whole swing in good light")
+    }
+
+    /// External-focus, prescriptive caption for a fault — names the club/target/effect,
+    /// not a body part. Feeds the on-frame coaching canvas (WS-E).
+    static func cue(for v: Violation) -> String {
+        switch v.tier {
+        case 1: return "Let the club trail the turn coming down"
+        case 2: return v.current.lowercased().contains("shallow")
+            ? "Bring the club out in front of you"
+            : "Drop the club into the corridor"
+        case 3: return v.metricLabel.lowercased().contains("sway")
+            ? "Turn inside a barrel — don't slide"
+            : "Cover the ball through the strike"
+        case 4: return v.title.lowercased().contains("sharpen")
+            ? "Flow into the downswing a beat sooner"
+            : "Finish the backswing before you fire"
+        case 5: return "Turn your back to the target at the top"
+        default: return "Keep sharpening this one"   // tier 6 refinement (already in-band)
+        }
     }
 
     // MARK: - Internal violation model

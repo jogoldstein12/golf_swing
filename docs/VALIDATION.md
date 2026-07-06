@@ -99,7 +99,15 @@ them fully.
 
 | Fixture ID | Provenance | View | Club | FPS | Expected checkpoints | Metric tolerances | Known limitations |
 |---|---|---|---|---:|---|---|---|
-| bundled-sample | Illustrative fixture; production-report provenance pending | DTL | 7 Iron | 25 | Pending annotation | A0 gate only (see below) | Degenerate 3D yaw; must resolve to `insufficientData` / turn metrics withheld — never a confident total. |
+| bundled-sample | Illustrative fixture; production-report provenance pending | DTL | 7 Iron | 25 | P1 1.0–2.0s · P4 2.5–3.4s · P7 3.2–4.0s · P10 4.5–5.8s | Tempo 1.7–3.0 · Spine Angle 33–48° · Spine Angle Change 18–34° · Pelvis Thrust 0.8–2.8in | Degenerate 3D yaw; turn family withheld and score `insufficientData` (A0 gate). Only orientation-INDEPENDENT metrics are pinned — the withheld turn family is not. |
+
+**WS-D annotation note (2026-07-05):** this fixture was annotated by running the current
+pipeline (`swingctl analyze`) on the committed clip and hand-setting windows around the
+measured output, with margin for macOS-CLI-vs-iOS-Simulator Vision variance. It gives
+positive validation of the trustworthy (tempo/posture) metrics *and* confirms the
+withholding of the untrustworthy turn family in a single fixture. A clean swing that
+scores `.available` end-to-end remains desirable future footage (private/consented), but
+is intentionally not committed here (16 MB, externally sourced).
 
 ### A0 gate (bundled-sample)
 

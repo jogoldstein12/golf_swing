@@ -27,6 +27,7 @@ private struct ImportedSwingVideo: Transferable {
 struct HomeScreen: View {
     @Query(sort: \SwingRecord.date, order: .reverse) private var swings: [SwingRecord]
     @Query(sort: \AnalysisJobRecord.updatedAt, order: .reverse) private var analysisJobs: [AnalysisJobRecord]
+    @Query(sort: \FocusRecord.createdAt, order: .reverse) private var focuses: [FocusRecord]
     @Environment(\.modelContext) private var context
     var onRecord: () -> Void = {}
     var onImport: (URL) -> Void = { _ in }
@@ -43,6 +44,10 @@ struct HomeScreen: View {
                     header
 
                     heading.padding(.top, 36)
+
+                    if let focus = activeFocus {
+                        activeFocusCard(focus).padding(.top, 20)
+                    }
 
                     if !analysisJobs.isEmpty {
                         draftList.padding(.top, 22)
@@ -159,6 +164,42 @@ struct HomeScreen: View {
         if delta > 0 { return "up \(delta) from last swing" }
         if delta < 0 { return "down \(-delta) from last swing" }
         return "level with last swing"
+    }
+
+    // MARK: - Active focus (WS-E practice loop)
+
+    /// The one thing being worked on, if any — the most recent unresolved focus.
+    private var activeFocus: FocusRecord? { focuses.first { !$0.isResolved } }
+
+    private func activeFocusCard(_ focus: FocusRecord) -> some View {
+        FloatCard(padding: 20) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    MicroLabel("Working on", color: .fairwayText)
+                    Spacer()
+                    MicroLabel(focus.club, color: .ink25, size: 9)
+                }
+                Text(focus.goalTitle)
+                    .font(Type.display(19))
+                    .foregroundStyle(Color.ink)
+                Text(focus.cue)
+                    .font(Type.ui(13.5))
+                    .lineSpacing(3.5)
+                    .foregroundStyle(Color.ink70)
+                Button(action: onRecord) {
+                    HStack(spacing: 6) {
+                        MicroLabel("Record to check", color: .ink, size: 9)
+                        ChevronGlyph()
+                            .stroke(Color.ink, style: .init(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+                            .frame(width: 5, height: 9)
+                    }
+                    .padding(.top, 4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PressScaleStyle())
+            }
+        }
+        .accessibilityIdentifier("activeFocus")
     }
 
     // MARK: - Trend

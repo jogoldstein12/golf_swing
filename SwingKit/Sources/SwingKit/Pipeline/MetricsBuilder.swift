@@ -129,6 +129,56 @@ enum MetricsBuilder {
     /// Below this the dependent metric is withheld entirely (`.unavailable`).
     static let orientationWithheldThreshold = 0.35
 
+    /// WS-C: pelvis and torso peaks within this window (≈1 frame @30fps) make the
+    /// downswing peak *order* noise rather than signal — the two segments share the
+    /// pose model's yaw component, so a sub-frame gap can't be resolved. The sequence
+    /// is then scored neutral (its weight redistributed to the reliable components).
+    static let sequenceDegenerateWindow = 0.033
+
+    /// True when pelvis and torso peak essentially together — an unresolvable order.
+    static func isSequenceDegenerate(_ seq: KinematicSequence) -> Bool {
+        guard seq.peaks.count == 4,
+              let pelvis = seq.peaks.first(where: { $0.segment == .pelvis })?.time,
+              let torso = seq.peaks.first(where: { $0.segment == .torso })?.time
+        else { return false }
+        return abs(torso - pelvis) < sequenceDegenerateWindow
+    }
+
+    /// WS-C: orientation confidence is judged in the P4/P5 (top/transition) neighborhood,
+    /// not averaged over the whole clip — a clean address and impact must not mask a
+    /// corrupt top, which is exactly where turn/X-factor/plane are read. Falls back to the
+    /// whole-clip fraction when no top/transition checkpoint is available.
+    static let orientationWindowSeconds = 0.15
+
+    static func windowedOrientationConfidence(frames: [PoseFrame],
+                                              checkpoints: [CheckpointMark]) -> Double {
+        windowedFraction(trust: BodyOrientation.orientationTrustMask(frames: frames),
+                         times: frames.map(\.time), checkpoints: checkpoints)
+    }
+
+    /// Pure windowing math (no pose model) so it can be unit-tested directly: the fraction
+    /// of trusted frames within ±`orientationWindowSeconds` of any P4/P5 checkpoint, or the
+    /// whole-clip fraction when there's no top/transition anchor or no frames land in-window.
+    static func windowedFraction(trust: [Bool], times: [Double],
+                                 checkpoints: [CheckpointMark]) -> Double {
+        guard !trust.isEmpty else { return 0 }
+        let wholeClip = { Double(trust.filter { $0 }.count) / Double(trust.count) }
+
+        let anchors = checkpoints.filter { $0.position == .p4 || $0.position == .p5 }
+        guard !anchors.isEmpty else { return wholeClip() }
+
+        var indices = Set<Int>()
+        for anchor in anchors {
+            for i in times.indices
+            where i < trust.count && abs(times[i] - anchor.time) <= orientationWindowSeconds {
+                indices.insert(i)
+            }
+        }
+        guard !indices.isEmpty else { return wholeClip() }
+        let trustedInWindow = indices.filter { trust[$0] }.count
+        return Double(trustedInWindow) / Double(indices.count)
+    }
+
     /// A2: degrade orientation-dependent metrics when the yaw stream is weak. Pure over
     /// the metric list; never touches orientation-independent metrics, never edits the
     /// value. Above `orientationInferredThreshold` this is a no-op.
@@ -176,12 +226,17 @@ enum MetricsBuilder {
         }
 
         // Sequence order (30%): fraction of segments whose peak-time rank matches the
-        // ideal pelvis->torso->leadArm->club order. Low-confidence sequences (the
-        // orientation stream was untrusted through the downswing — see
-        // KinematicSequence.lowConfidence) score neutral: an unmeasured order is
-        // neither rewarded nor punished.
+        // ideal pelvis->torso->leadArm->club order. Scored neutral (nil -> weight
+        // redistributed to the reliable components) when the order can't be trusted:
+        // either the orientation stream was untrusted through the downswing
+        // (KinematicSequence.lowConfidence), or the sequence is DEGENERATE — pelvis and
+        // torso peaking within one frame, where peak *order* is noise not signal
+        // (SegmentSeries's shared-yaw compression). An unmeasured order is neither
+        // rewarded nor punished.
         let sequenceScore: Double?
-        if input.sequence.peaks.count == 4, input.sequence.lowConfidence != true {
+        if input.sequence.peaks.count == 4,
+           input.sequence.lowConfidence != true,
+           !Self.isSequenceDegenerate(input.sequence) {
             let actual = input.sequence.peaks.sorted { $0.time < $1.time }.map(\.segment)
             let ideal = input.sequence.idealOrder
             let matches = zip(actual, ideal).filter { $0 == $1 }.count
@@ -244,15 +299,19 @@ enum MetricsBuilder {
         let twoD = Double(input.frames.filter { $0.j2.count >= 8 }.count) / count
         let threeD = Double(input.frames.filter { $0.j3.count >= 8 }.count) / count
         let checkpoint = min(1, Double(input.timing.checkpoints.count) / 10)
-        let trust = BodyOrientation.orientationTrustMask(frames: input.frames)
-        let orientation = trust.isEmpty
-            ? 0 : Double(trust.filter { $0 }.count) / Double(trust.count)
+        // WS-C: judged over the P4/P5 window, so a corrupt top isn't hidden by a clean
+        // address/impact.
+        let orientation = windowedOrientationConfidence(
+            frames: input.frames, checkpoints: input.timing.checkpoints)
         var warnings: [String] = []
         if twoD < 0.65 { warnings.append("Parts of the golfer were not visible consistently.") }
         if threeD < 0.50 { warnings.append("Depth measurements had limited coverage.") }
         if checkpoint < 0.80 { warnings.append("Several swing checkpoints were uncertain.") }
         if orientation < orientationInferredThreshold {
-            warnings.append("3D body rotation was only partly trusted; turn, X-factor, and plane are shown with reduced confidence.")
+            warnings.append("3D body rotation was only partly trusted at the top; turn, X-factor, and plane are shown with reduced confidence.")
+        }
+        if isSequenceDegenerate(input.sequence) {
+            warnings.append("Pelvis and torso peaked almost together, so the downswing sequence order couldn't be judged; it wasn't scored.")
         }
         if input.view != .faceOn, input.plane.basis == nil {
             warnings.append("The shaft or ball was not clear enough to establish swing plane.")

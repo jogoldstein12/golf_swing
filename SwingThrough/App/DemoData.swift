@@ -59,7 +59,8 @@ enum DemoData {
             basePlaneAngle: 56,
             deviationByPosition: [.p5: 4.2, .p6: 1.1, .p7: 0.4],
             stateByPosition: [.p5: .over, .p6: .on, .p7: .on],
-            basePlaneLine2D: [SIMD2(0.585, 0.802), SIMD2(0.253, 0.318)]
+            basePlaneLine2D: [SIMD2(0.585, 0.802), SIMD2(0.253, 0.318)],
+            basis: .shaftDetected
         )
 
         let sequence = KinematicSequence(peaks: [

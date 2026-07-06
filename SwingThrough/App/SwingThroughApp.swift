@@ -8,7 +8,7 @@ struct SwingThroughApp: App {
 
     init() {
         MetricKitMonitor.shared.start()
-        let schema = Schema(versionedSchema: SwingThroughSchemaV2.self)
+        let schema = Schema(versionedSchema: SwingThroughSchemaV3.self)
         do {
             let configuration = ModelConfiguration(schema: schema)
             modelContainer = try ModelContainer(

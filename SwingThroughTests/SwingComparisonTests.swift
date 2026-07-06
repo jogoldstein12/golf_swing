@@ -38,14 +38,13 @@ final class SwingComparisonTests: XCTestCase {
 
     // MARK: - Metric deltas
 
-    func testSignedDeltaBandCenteredImprovesTowardBand() {
+    func testSignedDeltaBandCenteredImprovesTowardBand() throws {
         let prev = report(metrics: [metric("Swing Plane", 66, ideal: 52...62)])
         let curr = report(metrics: [metric("Swing Plane", 60, ideal: 52...62)])
-        let d = SwingComparison.delta(for: "Swing Plane", current: curr, previous: prev)
-        XCTAssertNotNil(d)
-        XCTAssertEqual(d?.change, -6, accuracy: 1e-9)
-        XCTAssertEqual(d?.improved, true)   // 66 (out, +4 above) → 60 (in band)
-        XCTAssertEqual(d?.currentInBand, true)
+        let d = try XCTUnwrap(SwingComparison.delta(for: "Swing Plane", current: curr, previous: prev))
+        XCTAssertEqual(d.change, -6, accuracy: 1e-9)
+        XCTAssertEqual(d.improved, true)   // 66 (out, +4 above) → 60 (in band)
+        XCTAssertEqual(d.currentInBand, true)
     }
 
     func testSignedDeltaBandCenteredRegresses() {
@@ -55,12 +54,12 @@ final class SwingComparisonTests: XCTestCase {
         XCTAssertEqual(d?.improved, false)  // in band → 6° above band
     }
 
-    func testHigherIsBetterDeltaDirection() {
+    func testHigherIsBetterDeltaDirection() throws {
         let prev = report(metrics: [metric("Speed", 90, ideal: 100...120, higherIsBetter: true)])
         let curr = report(metrics: [metric("Speed", 105, ideal: 100...120, higherIsBetter: true)])
-        let d = SwingComparison.delta(for: "Speed", current: curr, previous: prev)
-        XCTAssertEqual(d?.change, 15, accuracy: 1e-9)
-        XCTAssertEqual(d?.improved, true)
+        let d = try XCTUnwrap(SwingComparison.delta(for: "Speed", current: curr, previous: prev))
+        XCTAssertEqual(d.change, 15, accuracy: 1e-9)
+        XCTAssertEqual(d.improved, true)
     }
 
     func testNoPriorMetricYieldsNilDelta() {
