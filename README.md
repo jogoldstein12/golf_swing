@@ -30,14 +30,26 @@ coaches you through what it found, in priority order, grounded in those numbers.
   points, and tappable good/fault markers that expand into specific notes. **Video / 3D /
   Split** panes share one timeline: headline checkpoints (Address · Top · Impact ·
   Follow), a full P1–P10 tick timeline with drag scrubbing, and playback.
+- **Coaching canvas** — the top goal's fix is drawn *on your actual frame*, not a
+  schematic beside it: the target plane corridor, a ghost of your own prior swing's plane,
+  and a move arrow, all mapped through the same cover geometry as the video so the lines
+  sit on the pixels. Nothing is drawn when the shaft wasn't measured; an estimated read
+  shows dashed/amber rather than a confident line.
+- **Power sequence** — a collapsible staircase of the four segments' angular-velocity
+  traces with labelled peaks. It claims the ascending "in order" verdict only when the
+  top-of-swing read is trustworthy; when rotation was too unsteady to judge, it greys out
+  with an honest caution instead of a fake order.
 - **3D avatar** — a sculpted clay mannequin animated by your actual joint tracks, with
   swing-plane disc and downswing path ribbon, orbit/pinch, and a ghost-compare mode.
 - **Metrics & score** — each metric includes measurement provenance and is shown against
   its ideal band. The 0–100 Swing Score appears only when pose/checkpoint coverage is
   sufficient and uses view-appropriate components (face-on swings are not penalized for
   missing down-the-line plane data).
-- **Goals** — 2–4 coaching goals in priority order, each with current → target and a
-  concrete drill.
+- **Goals & the practice loop** — 2–4 coaching goals in priority order, each with
+  current → target and a concrete drill. Pin one as your focus; it surfaces on Home as
+  "Working on" and clears itself once that metric holds inside its band across your next
+  same-club swings ("fixed"). It never resolves off a different club/view or a swing whose
+  metric couldn't be measured.
 - **History & drills** — swing gallery with score trend; a drill library where the
   drills prescribed for *your* faults lead.
 
@@ -154,8 +166,6 @@ verified frame-by-frame from screen recordings (see `SwingThroughUITests/DriveTe
 **Near-term (v1.1)**
 - Two-angle fusion UI: record DTL + face-on and merge into one report
   (`SwingReport.fused` exists in SwingKit; needs the flow + gallery pairing UX).
-- Kinematic-sequence graph on the analysis screen (the per-segment angular-velocity
-  series is already in every report).
 - Real-device field pass: verify the fixed 1080p60-class capture profile, detector
   thresholds against live swings, battery/thermal behavior, and capture haptics.
 - Onboarding: first-run camera-setup walkthrough (height, distance, angle) with the
@@ -167,8 +177,8 @@ verified frame-by-frame from screen recordings (see `SwingThroughUITests/DriveTe
   true shaft-plane deviation and club speed; contact-quality inference.
 - Pro-comparison mode: bundled reference swings, ghost-overlaid and checkpoint-synced
   on both video and 3D (GhostTrack API is already in the avatar).
-- Per-club history, filters, and trend analytics; goal streaks and "fixed" detection
-  (fault disappears across N swings).
+- Per-club history, filters, and trend analytics; goal streaks building on the shipped
+  per-focus "fixed" resolution.
 - Claude coaching continuity: session memory of prior goals (context field exists),
   progression narratives, drill follow-ups.
 - Face-on-specific measurements: sway/weight-shift emphasis, head stability box.
