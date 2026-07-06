@@ -7,6 +7,10 @@ import SwingKit
 struct AnalysisScreen: View {
     @Bindable var model: AnalysisModel
     @State private var enhancedCoaching = EnhancedCoachingStore.shared
+    /// "More lines" disclosure for the plane overlay — shared between the video-space
+    /// PlaneOverlay (drawn in the hero card) and CoachingCanvas's toggle button below it,
+    /// so the two views can never disagree about what's drawn.
+    @State private var showAdvancedOverlay = false
     var onBack: (() -> Void)? = nil
     var onRecord: () -> Void = {}
     /// Open the drill-detail (practice loop) page for a goal. Wired by RootView.
@@ -35,18 +39,18 @@ struct AnalysisScreen: View {
                     heroCard.padding(.top, 20)
 
                     // The coaching canvas leads for a SCORED read: goal #1's honest overlay
-                    // + one cue + the two next actions. Never shown for a low-confidence
-                    // read — there is no trustworthy fault to draw.
-                    if let goal = model.report.coaching?.goals.first,
-                       model.report.score.isAvailable {
-                        let plan = SwingOverlay.plan(
-                            goal: goal, report: model.report, prior: priorReport, skill: .beginner
-                        )
+                    // (drawn on the actual video frame above, in the hero card) + one cue
+                    // + the two next actions. Never shown for a low-confidence read —
+                    // there is no trustworthy fault to draw.
+                    if let plan = overlayPlan {
                         CoachingCanvas(
                             plan: plan,
-                            drillName: goal.drill,
+                            drillName: model.report.coaching?.goals.first?.drill,
                             onSeeFix: { model.select(plan.position) },
-                            onDrill: { onOpenDrill(goal) }
+                            onDrill: {
+                                if let goal = model.report.coaching?.goals.first { onOpenDrill(goal) }
+                            },
+                            showAdvanced: $showAdvancedOverlay
                         )
                         .padding(.top, 20)
                     }
@@ -215,10 +219,13 @@ struct AnalysisScreen: View {
 
     private var panes: some View {
         VStack(spacing: 0) {
-            VideoAnalysisView(model: model)
-                .frame(height: videoHeight)
-                .clipped()
-                .opacity(videoHeight > 0 ? 1 : 0)
+            ZStack(alignment: .topLeading) {
+                VideoAnalysisView(model: model)
+                if videoHeight > 0 { planeOverlayLayer }
+            }
+            .frame(height: videoHeight)
+            .clipped()
+            .opacity(videoHeight > 0 ? 1 : 0)
             Hairline()
                 .opacity(model.pane == .split ? 1 : 0)
             if model.pane != .video {
@@ -228,6 +235,57 @@ struct AnalysisScreen: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.88), value: model.pane)
+    }
+
+    /// The goal overlay, riding in the SAME cover-scale + per-time window container the
+    /// video itself uses (VideoPaneLayout + the model's own framing track) — one source
+    /// of truth, so the drawing can never drift from the pixels the video shows.
+    private var planeOverlayLayer: some View {
+        GeometryReader { geo in
+            let layout = VideoPaneLayout(pane: geo.size, videoSize: model.videoSize)
+            let windowTop = model.framingWindowTop(at: model.time, visible: layout.visibleFraction)
+            let offsetY = layout.offsetY(forWindowTop: windowTop)
+
+            PlaneOverlay(
+                plan: overlayPlan,
+                planeLine2D: model.report.plane.basePlaneLine2D,
+                videoSize: honestVideoSize,
+                isEstimated: overlayIsEstimated,
+                showAdvanced: showAdvancedOverlay
+            )
+            .frame(width: layout.displaySize.width, height: layout.displaySize.height, alignment: .topLeading)
+            .offset(y: -offsetY)
+            .animation(model.isPlaying ? nil : .spring(response: 0.55, dampingFraction: 0.9), value: offsetY)
+        }
+        .allowsHitTesting(false)
+    }
+
+    // MARK: goal overlay resolution
+
+    /// Goal #1's honest overlay plan — used both by the video-space PlaneOverlay (drawn
+    /// above, in the hero card) and CoachingCanvas's caption/controls band below it. One
+    /// plan, two views: they can never disagree about what's drawn.
+    private var overlayPlan: OverlayPlan? {
+        guard let goal = model.report.coaching?.goals.first, model.report.score.isAvailable else {
+            return nil
+        }
+        return SwingOverlay.plan(goal: goal, report: model.report, prior: priorReport, skill: .beginner)
+    }
+
+    /// True when the plane goal's own metric is not a confident `.measured` read — the
+    /// overlay then draws dashed/amber and is captioned "Estimated", never the raw
+    /// pipeline word ("inferred" / "interpolated").
+    private var overlayIsEstimated: Bool {
+        guard let goal = model.report.coaching?.goals.first else { return false }
+        let provenance = model.report.coachableMetric(for: goal)?.quality?.provenance ?? .measured
+        return provenance != .measured
+    }
+
+    /// The pipeline's own video pixel dimensions. nil is an honest gate: without them
+    /// the overlay's normalized -> pixel mapping can't be trusted, so it draws nothing.
+    private var honestVideoSize: CGSize? {
+        guard let w = model.report.videoWidth, let h = model.report.videoHeight else { return nil }
+        return CGSize(width: w, height: h)
     }
 
     private var paneChrome: some View {

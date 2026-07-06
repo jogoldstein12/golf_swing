@@ -128,7 +128,8 @@ enum DemoData {
             frames: frames, checkpoints: checkpoints, plane: plane, sequence: sequence,
             pelvisDOF: [.p4: .init(turn: 46), .p7: .init(thrust: 2.0)],
             chestDOF: [.p4: .init(turn: 92)],
-            metrics: metrics, markers: markers, score: score, coaching: coaching
+            metrics: metrics, markers: markers, score: score, coaching: coaching,
+            videoWidth: 1080, videoHeight: 1920
         )
     }
 }
