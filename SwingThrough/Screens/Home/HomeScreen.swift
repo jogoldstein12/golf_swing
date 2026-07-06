@@ -350,16 +350,9 @@ struct HomeScreen: View {
     /// before the first real capture. Clearly labeled; removable.
     private func seedSampleIfEmpty() {
         guard swings.isEmpty else { return }
-        guard let demo = DemoData.load()?.report else {
-            sampleUnavailable = true
-            return
-        }
-        let record = SwingRecord(
-            id: demo.id, date: demo.date, club: demo.club, score: demo.score.total,
-            viewRaw: demo.view.rawValue, reportFileName: "", videoFileName: nil,
-            isSample: true
-        )
-        context.insert(record)
+        // Only auto-seed into a genuinely empty gallery (so a sample the user removed
+        // while they have real swings stays removed). SampleSeed persists the record.
+        sampleUnavailable = !SampleSeed.ensure(in: context)
     }
 
     private func update(_ record: SwingRecord, club: String? = nil,

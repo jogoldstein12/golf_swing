@@ -176,6 +176,21 @@ struct SettingsSheet: View {
                 }
 #endif
 
+                if !swings.contains(where: { $0.isSample }) {
+                    Button {
+                        SampleSeed.ensure(in: modelContext)
+                    } label: {
+                        HStack {
+                            MicroLabel("Restore sample swing", color: .ink70)
+                            Spacer()
+                        }
+                        .padding(.top, 24)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Restore the bundled sample swing")
+                }
+
                 Button(role: .destructive) {
                     confirmDeleteAll = true
                 } label: {
@@ -222,5 +237,8 @@ struct SettingsSheet: View {
             modelContext.delete(job)
         }
         try? modelContext.save()
+        // Leave the gallery explorable rather than blank: the bundled sample record is
+        // re-seeded immediately (its video was never on disk to delete).
+        SampleSeed.ensure(in: modelContext)
     }
 }
