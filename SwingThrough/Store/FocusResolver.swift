@@ -13,7 +13,11 @@ enum FocusResolver {
     /// include `current` as its last, newest element, chronological oldest→newest, per
     /// `SwingComparison.trend`'s contract)?
     static func shouldResolve(focus: FocusRecord, history: [SwingReport], current: SwingReport) -> Bool {
-        SwingComparison.trend(for: focus.metricLabel, history: history) == .fixed
+        // The resolving swing must itself have measured the metric — never credit a fix to
+        // a swing whose metric was withheld, even when prior swings already hold the streak
+        // (NP-1 acceptance: a focus never resolves off a swing where the metric is withheld).
+        guard SwingComparison.measuredMetric(focus.metricLabel, in: current) != nil else { return false }
+        return SwingComparison.trend(for: focus.metricLabel, history: history) == .fixed
     }
 
     /// Side-effecting: look for an unresolved focus matching `record`'s (club, view),

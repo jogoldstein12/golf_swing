@@ -78,4 +78,20 @@ final class FocusResolverTests: XCTestCase {
             focus: f, history: [previous, current], current: current
         ))
     }
+
+    func testWithheldCurrentNeverResolvesEvenWithFixedPriors() {
+        // The gate case: two prior MEASURED in-band swings already hold the streak, but the
+        // current swing's metric is withheld. Resolution must NOT be credited to a swing
+        // that never measured the metric — the trend alone (from the priors) is not enough.
+        let priorA = report(metrics: [metric("Swing Plane", 59, ideal: 52...62)])
+        let priorB = report(metrics: [metric("Swing Plane", 58, ideal: 52...62)])
+        let current = report(metrics: [
+            metric("Swing Plane", 0, ideal: 52...62, provenance: .unavailable,
+                   warnings: ["Shaft not detected."])
+        ])
+        let f = focus()
+        XCTAssertFalse(FocusResolver.shouldResolve(
+            focus: f, history: [priorA, priorB, current], current: current
+        ))
+    }
 }
