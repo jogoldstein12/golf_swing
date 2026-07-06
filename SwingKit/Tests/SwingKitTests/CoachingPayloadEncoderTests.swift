@@ -58,6 +58,7 @@ final class CoachingPayloadEncoderTests: XCTestCase {
             view: "downTheLine",
             club: "Driver",
             handedness: "right",
+            reliability: "reliable",
             durationSeconds: 2.8,
             checkpoints: [
                 .init(position: "P1", time: 0.0),
@@ -87,8 +88,8 @@ final class CoachingPayloadEncoderTests: XCTestCase {
                 .init(position: "P4", dof: .init(SixDOF(turn: 92, bend: 34, sideBend: 5, sway: 0.3, lift: 0.1, thrust: 0.2))),
             ],
             metrics: [
-                .init(label: "Tempo", value: 3.1, unit: ":1", idealLow: 2.7, idealHigh: 3.3, inBand: true),
-                .init(label: "Shoulder Turn", value: 92, unit: "°", idealLow: 85, idealHigh: 100, inBand: true),
+                .init(label: "Tempo", value: 3.1, unit: ":1", idealLow: 2.7, idealHigh: 3.3, inBand: true, provenance: "measured"),
+                .init(label: "Shoulder Turn", value: 92, unit: "°", idealLow: 85, idealHigh: 100, inBand: true, provenance: "measured"),
             ],
             score: .init(total: 78, availability: "available", components: [
                 .init(label: "Sequence", score: 0.95, weight: 0.3),
@@ -118,5 +119,38 @@ final class CoachingPayloadEncoderTests: XCTestCase {
         let a = try CoachingPayloadEncoder.encodeJSONData(report: report, context: context)
         let b = try CoachingPayloadEncoder.encodeJSONData(report: report, context: context)
         XCTAssertEqual(a, b)
+    }
+
+    // MARK: - WS-A: provenance never leaks a distrusted number to the model
+
+    private static func report(withMetric label: String, value: Double,
+                               provenance: MeasurementProvenance) -> SwingReport {
+        var r = goldenReport()
+        r.metrics = [MetricValue(
+            label: label, value: value, unit: "°", ideal: 20...150, display: 0...170,
+            quality: MeasurementQuality(confidence: 0.9, coverage: 0.9, provenance: provenance))]
+        return r
+    }
+
+    /// A withheld metric is excluded from the payload entirely — the model never sees the value.
+    func testWithheldMetricIsNotSentToModel() {
+        let r = Self.report(withMetric: "Shoulder Turn", value: 7.2, provenance: .unavailable)
+        let payload = CoachingPayloadEncoder.encode(report: r, context: .init())
+        XCTAssertFalse(payload.metrics.contains { $0.label == "Shoulder Turn" })
+    }
+
+    /// An interpolated/inferred metric IS sent, but carries its provenance so advice can hedge.
+    func testInterpolatedMetricCarriesProvenance() {
+        let r = Self.report(withMetric: "Hip Turn", value: 30, provenance: .interpolated)
+        let p = CoachingPayloadEncoder.encode(report: r, context: .init())
+        XCTAssertEqual(p.metrics.first { $0.label == "Hip Turn" }?.provenance, "interpolated")
+    }
+
+    /// The top-level reliability flag flips with score availability.
+    func testReliabilityReflectsScoreAvailability() {
+        var r = Self.goldenReport()
+        r.score = SwingScore(total: 0, components: [], availability: .insufficientData)
+        let p = CoachingPayloadEncoder.encode(report: r, context: .init())
+        XCTAssertEqual(p.reliability, "low_confidence")
     }
 }

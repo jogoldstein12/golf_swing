@@ -86,6 +86,7 @@ private func printCoachingPlan(_ plan: CoachingPlan) {
     print("")
     for goal in plan.goals.sorted(by: { $0.priority < $1.priority }) {
         print("[\(goal.priority)] \(goal.title)")
+        if let cue = goal.cue { print("    ➤ \(cue)") }
         print("    \(goal.detail)")
         print("    \(goal.metricLabel): \(goal.current) -> \(goal.target)")
         print("    Drill: \(goal.drill) — \(goal.drillDetail)")

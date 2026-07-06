@@ -18,7 +18,7 @@ public struct ClaudeCoach: CoachingEngine {
     public init(apiKeyProvider: APIKeyProvider = EnvironmentAPIKeyProvider(),
                 model: String = "claude-opus-4-8",
                 session: URLSession = .shared,
-                timeout: TimeInterval = 8) {
+                timeout: TimeInterval = 45) {
         self.apiKeyProvider = apiKeyProvider
         self.model = model
         self.session = session
@@ -68,7 +68,10 @@ public struct ClaudeCoach: CoachingEngine {
             throw CancellationError()
         } catch {
             try Task.checkCancellation()
-            throw CoachingError.network("request failed")
+            // Surface the underlying cause (e.g. "The request timed out.") instead of an
+            // opaque string. The API key lives in a header, never in the error, so this
+            // can't leak it.
+            throw CoachingError.network("request failed: \(error.localizedDescription)")
         }
 
         guard let http = response as? HTTPURLResponse else {
@@ -92,8 +95,9 @@ public struct ClaudeCoach: CoachingEngine {
                 "target": ["type": "string", "description": "e.g. \"±1.5°\"."],
                 "drill": ["type": "string", "description": "Short drill name."],
                 "drillDetail": ["type": "string", "description": "One or two sentences describing how to do the drill."],
+                "cue": ["type": "string", "description": "External-focus caption for the on-frame overlay: an imperative about the club/target/effect, never a body part, max ~8 words. e.g. \"Drop the club into the corridor\"."],
             ],
-            "required": ["priority", "title", "detail", "metricLabel", "current", "target", "drill", "drillDetail"],
+            "required": ["priority", "title", "detail", "metricLabel", "current", "target", "drill", "drillDetail", "cue"],
             "additionalProperties": false,
         ]
 
@@ -103,7 +107,7 @@ public struct ClaudeCoach: CoachingEngine {
                 "verdict": ["type": "string", "description": "One editorial sentence: the swing's character plus the one thing to change."],
                 "goals": [
                     "type": "array",
-                    "minItems": 2,
+                    "minItems": 1,       // a low-confidence read may honestly return just the capture goal
                     "maxItems": 4,
                     "items": goalSchema,
                 ],
@@ -157,7 +161,8 @@ public struct ClaudeCoach: CoachingEngine {
             let raw = try JSONDecoder().decode(RawPlan.self, from: inputData)
             let goals = raw.goals.map { g in
                 CoachGoal(priority: g.priority, title: g.title, detail: g.detail, metricLabel: g.metricLabel,
-                          current: g.current, target: g.target, drill: g.drill, drillDetail: g.drillDetail)
+                          current: g.current, target: g.target, drill: g.drill, drillDetail: g.drillDetail,
+                          cue: g.cue)
             }
             return CoachingPlan(verdict: raw.verdict, goals: goals, source: .claude)
         } catch {
@@ -174,6 +179,7 @@ public struct ClaudeCoach: CoachingEngine {
         let target: String
         let drill: String
         let drillDetail: String
+        let cue: String?
     }
 
     private struct RawPlan: Decodable {
@@ -207,6 +213,19 @@ public struct ClaudeCoach: CoachingEngine {
     posture, posture before tempo, tempo before turn magnitude. Never lead with a cosmetic fix while \
     an earlier link in the chain is broken.
 
+    MEASUREMENT TRUST — every metric in the payload carries a `provenance`. Metrics marked \
+    `interpolated` or `inferred` are ESTIMATES: you may mention them, but hedge — do not prescribe a \
+    hard numeric target from them. Withheld measurements are absent from the payload entirely; never \
+    infer a fault from a metric that isn't there. The payload's top-level `reliability` tells you how \
+    much to trust the whole read: if it is `low_confidence`, your FIRST goal MUST address capture \
+    quality (get the whole swing in frame, steady phone, even light), you may return as few as ONE \
+    additional goal, and any metric goal you add must be framed as tentative.
+
+    EXTERNAL FOCUS — every goal also carries a `cue`: a short imperative (≤ ~8 words) about the \
+    club/target/ball/effect, NEVER a body part. It captions an on-frame overlay, so it must describe \
+    something the golfer can see and swing toward. "Drop the club into the corridor" or "Turn your \
+    back to the target" — never "rotate your shoulders more".
+
     VOICE — editorial, precise, quantified, warm but expert. No exclamation marks, no emoji, no \
     filler like "great job!" or generic tips. Quantify every claim with the numbers given in the \
     payload — never invent numbers that aren't there. One concrete drill per goal. Em-dashes welcome.
@@ -226,8 +245,10 @@ public struct ClaudeCoach: CoachingEngine {
     OUTPUT — call emit_coaching_plan exactly once with:
     - verdict: one editorial sentence — the swing's character, built from its strongest measured \
     trait, plus the one thing to change (the highest-priority fault).
-    - goals: 2 to 4 entries, priority-ordered (1 = fix first, matching the chain above). If every \
-    measurement in the payload is inside its ideal band, return refinement goals for the tightest \
-    margins instead of fabricating faults — never return zero goals.
+    - goals: 2 to 4 entries when reliability is `reliable` (or 1 to 4, capture-quality first, when \
+    `low_confidence`), priority-ordered (1 = fix first, matching the chain above). Each goal includes \
+    a `cue` (external focus, see above). If every measurement in the payload is inside its ideal band, \
+    return refinement goals for the tightest margins instead of fabricating faults — never return zero \
+    goals.
     """
 }

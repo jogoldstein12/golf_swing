@@ -80,6 +80,42 @@ final class CoachingRuleBasedTests: XCTestCase {
         let plan = try await RuleBasedCoach().coach(report, context: .init())
         XCTAssertEqual(plan.source, .rules)
     }
+
+    // MARK: - WS-A: no advice on withheld metrics, honest low-confidence lead, external cues
+
+    /// A withheld turn metric must never surface as a coaching goal.
+    func testRuleCoachDoesNotCoachOnWithheldMetric() async throws {
+        var report = Fixtures.baseReport(sequencePeaks: Fixtures.idealSequence())
+        report.metrics.append(MetricValue(
+            label: "X-Factor at Transition", value: 0.8, unit: "°", ideal: 30...55, display: 0...80,
+            quality: MeasurementQuality(confidence: 0.1, coverage: 0.3, provenance: .unavailable,
+                                        warnings: ["Orientation not trusted at the top."])))
+        let plan = try await RuleBasedCoach().coach(report, context: .init())
+        XCTAssertFalse(plan.goals.contains { $0.metricLabel == "X-Factor at Transition" },
+                       "withheld metric leaked into goals: \(plan.goals.map(\.metricLabel))")
+    }
+
+    /// On an insufficient-data read, the lead goal is the capture-quality sentinel, not a fault.
+    func testInsufficientDataLeadsWithCaptureQuality() async throws {
+        var report = Fixtures.planeSteepSequenceFine()   // has a real plane fault…
+        report.score = SwingScore(total: 0, components: [], availability: .insufficientData)  // …but the read is low-confidence
+        let plan = try await RuleBasedCoach().coach(report, context: .init())
+        XCTAssertEqual(plan.goals.first?.metricLabel, "Capture")
+        XCTAssertLessThanOrEqual(plan.goals.count, 2, "low-confidence read caps at capture + one tentative goal")
+    }
+
+    /// Every fault goal carries a non-empty external-focus cue with no body-part-only phrasing.
+    func testFaultGoalsCarryExternalFocusCue() async throws {
+        let plan = try await RuleBasedCoach().coach(Fixtures.everyTierBroken(), context: .init())
+        for goal in plan.goals {
+            let cue = goal.cue ?? ""
+            XCTAssertFalse(cue.isEmpty, "goal \(goal.metricLabel) has no cue")
+        }
+        // The plane goal's cue is the canvas caption — external, effect-focused.
+        if let plane = plan.goals.first(where: { $0.metricLabel.lowercased().contains("plane") }) {
+            XCTAssertEqual(plane.cue, "Drop the club into the corridor")
+        }
+    }
 }
 
 // MARK: - Synthetic fixtures
