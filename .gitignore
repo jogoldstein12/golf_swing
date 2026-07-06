@@ -22,3 +22,6 @@ assets/fonts/
 
 # SPM build artifacts
 SwingKit/.build/
+
+# Brainstorming visual-companion working files
+.superpowers/
