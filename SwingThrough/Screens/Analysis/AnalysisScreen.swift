@@ -106,6 +106,9 @@ struct AnalysisScreen: View {
                     MetricsSection(report: model.report, priorReport: priorReport)
                         .padding(.top, 8)
 
+                    PowerSequenceSection(sequence: model.report.sequence)
+                        .padding(.top, 8)
+
                     goals.padding(.top, 40)
 
                     PrimaryButton("Record next swing", action: onRecord)
